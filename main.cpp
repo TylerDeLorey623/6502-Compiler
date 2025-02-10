@@ -5,14 +5,13 @@
 #include <regex>
 
 #include "Token.h"
-#include "Symbol.h"
-#include "Keyword.h"
 
 using namespace std;
 
 class Lexer 
 {
     public:
+        // Default constructor for the Lexer class
         Lexer(const string inputCode)
         {
             this->program = inputCode;
@@ -22,6 +21,66 @@ class Lexer
         vector<Token> tokenize()
         {
             vector<Token> tokens;
+            smatch match;
+
+            int size = program.size();
+            while (currentPosition < size)
+            {
+                string programSnippet = program.substr(currentPosition);
+
+                // Ignores all comments
+                if (regex_search(programSnippet, match, commentREGEX))
+                {
+                    currentPosition += match.length(0);
+                    continue;
+                }
+                // Ignores whitespace
+                else if (!inQuotes && regex_search(programSnippet, match, spaceREGEX))
+                {
+                    currentPosition += match.length(0);
+                    continue;
+                }
+
+                // Detects keywords
+                if (regex_search(programSnippet, match, keywordREGEX))
+                {
+                    cout << "KEYWORD " << match.str(0) << endl;
+                    currentPosition += match.length(0);
+                }
+                // Detects IDs
+                else if (regex_search(programSnippet, match, idREGEX))
+                {
+                    cout << "ID " << match.str(0) << endl;
+                    currentPosition += match.length(0);
+                    
+                    requireID = false;
+                }
+                // Detects symbols
+                else if (regex_search(programSnippet, match, symbolREGEX))
+                {
+                    cout << "SYMBOL " << match.str(0) << endl;
+                    currentPosition += match.length(0);
+                }
+                // Detects digits
+                else if (regex_search(programSnippet, match, digitREGEX))
+                {
+                    cout << "DIGIT " << match.str(0) << endl;
+                    currentPosition += match.length(0);
+                }
+                // Detects chars
+                else if (inQuotes && regex_search(programSnippet, match, charREGEX))
+                {
+                    cout << "CHAR " << match.str(0) << endl;
+                    currentPosition += match.length(0);
+                }
+                else
+                {
+                    cout << "Unrecognized Token: " << programSnippet[0] << endl;
+                    break;
+                }
+
+            }
+
 
             return tokens;
         }
@@ -30,12 +89,20 @@ class Lexer
         // Holds all of the code in the file
         string program;
 
+        int currentPosition = 0;
+        bool inQuotes = false;
+
+        string storedKeyword;
+        bool requireID = false;
+
         // Regular expressions for this entire grammar
-        regex keywordREGEX = regex("\\b(print|while|if|int|string|boolean|true|false)\\b");
-        regex idREGEX = regex("[a-z]+");
-        regex symbolREGEX = regex(R"(\{|\}|"|\(|\)|==|!=|\+|=|\s|\$)");
-        regex digitREGEX = regex("[0-9]");
-        regex charREGEX = regex("[a-z]");
+        regex commentREGEX = regex(R"(^\/\*.*?\*\/)");
+        regex spaceREGEX = regex(R"(^\s+)");
+        regex keywordREGEX = regex(R"(^\b(print|while|if|int|string|boolean|true|false)\b)");
+        regex idREGEX = regex(R"(^[a-z]+)");
+        regex symbolREGEX = regex(R"(^(\{|\}|"|\(|\)|==|!=|\+|=|\$))");
+        regex digitREGEX = regex(R"(^[0-9])");
+        regex charREGEX = regex(R"(^[a-zA-Z])");
 };
 
 // Splits up the programs by the delimiter
@@ -78,12 +145,16 @@ int main()
     // Compile each program
     for (int i = 0, size = programs.size(); i < size; i++)
     {
+        cout << "INFO  Lexer - Lexing program " << i + 1 << "..." << endl;
         Lexer* currentLex = new Lexer(programs[i]);
         vector<Token> tokens = currentLex->tokenize();
+        int error = 0;
+        cout << "INFO  Lexer - Lex completed with " << error << " errors" << endl;
         // PARSER
         // SEMANATIC ANALYSIS
         // CODE GEN
         delete(currentLex);
+        cout << endl;
     }
 
     //cout << "DEBUG Lexer - " << savedItem << " [ " <<  savedBuffer << " ] found at (" << savedItemLine << ":" << savedItemColumn << ")" << endl;
