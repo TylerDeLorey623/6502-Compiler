@@ -11,8 +11,7 @@ TARGET = main
 SRCS = main.cpp
 
 # Header files
-HEADERS = Token.h \
-		  Symbol.h
+HEADERS = Token.h
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)
