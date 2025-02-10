@@ -18,7 +18,7 @@ class Lexer
         }
 
         // Tokenize the program to be used by the Parser
-        vector<Token> tokenize()
+        pair<vector<Token>, int> tokenize()
         {
             vector<Token> tokens;
             smatch match;
@@ -76,13 +76,14 @@ class Lexer
                 else
                 {
                     cout << "Unrecognized Token: " << programSnippet[0] << endl;
+                    errorCount++;
                     break;
                 }
 
             }
 
 
-            return tokens;
+            return make_pair(tokens, errorCount);
         }
 
     private:
@@ -94,6 +95,8 @@ class Lexer
 
         string storedKeyword;
         bool requireID = false;
+
+        int errorCount = 0;
 
         // Regular expressions for this entire grammar
         regex commentREGEX = regex(R"(^\/\*.*?\*\/)");
@@ -147,9 +150,12 @@ int main()
     {
         cout << "INFO  Lexer - Lexing program " << i + 1 << "..." << endl;
         Lexer* currentLex = new Lexer(programs[i]);
-        vector<Token> tokens = currentLex->tokenize();
-        int error = 0;
-        cout << "INFO  Lexer - Lex completed with " << error << " errors" << endl;
+        auto result = currentLex->tokenize();
+
+        vector<Token> tokens = result.first;
+        int errors = result.second;
+
+        cout << "INFO  Lexer - Lex completed with " << errors << " error(s)" << endl;
         // PARSER
         // SEMANATIC ANALYSIS
         // CODE GEN
