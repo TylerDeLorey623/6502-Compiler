@@ -1,6 +1,8 @@
 #ifndef LEXER_H
 #define LEXER_H
 
+#include <unordered_map>
+
 // Globals
 int LINEROW = 1;
 int LINECOLUMN = 1;
@@ -38,7 +40,7 @@ class Lexer
                 // Detects keywords
                 if (regex_search(programSnippet, match, keywordREGEX))
                 {
-                    matches.emplace_back("KEYWORD", match.str(0));
+                    matches.emplace_back(symToName(match.str(0)), match.str(0));
                 }
                 // Detects IDs
                 if (!inQuotes && regex_search(programSnippet, match, idREGEX))
@@ -71,13 +73,13 @@ class Lexer
                     // Symbols cannot appear in quotes, so throw error
                     else if (inQuotes)
                     {
-                        cout << "Unrecognized Token: " << programSnippet[0] << endl;
+                        cout << "ERROR Lexer - Error:" << LINEROW << ":" << LINECOLUMN << " Unrecognized Token: " << programSnippet[0] << endl;
                         errorCount++;
                         currentPosition++;
                         continue;
                     }
 
-                    matches.emplace_back("SYMBOL", match.str(0));
+                    matches.emplace_back(symToName(match.str(0)), match.str(0));
                 }
                 // Detects digits
                 if (regex_search(programSnippet, match, digitREGEX))
@@ -106,7 +108,8 @@ class Lexer
                         }
                     }
 
-                    cout << longestMatch.first << " " << longestMatch.second << " at (" << LINEROW << ":" << LINECOLUMN << ")" << endl;
+                    // Print results
+                    cout << "DEBUG Lexer - " << longestMatch.first << " [ " << longestMatch.second << " ] found at (" << LINEROW << ":" << LINECOLUMN << ")" << endl;
                     currentPosition += longestMatch.second.length();
                     LINECOLUMN += longestMatch.second.length();
                     matches.clear();
@@ -114,8 +117,9 @@ class Lexer
                 // If there were no matches, there was an unrecognized token
                 else
                 {
-                    cout << "Unrecognized Token: " << programSnippet[0] << endl;
+                    cout << "ERROR Lexer - Error:" << LINEROW << ":" << LINECOLUMN << " Unrecognized Token: " << programSnippet[0] << endl;
                     errorCount++;
+                    LINECOLUMN++;
                     currentPosition++;
                 }
             }
@@ -134,12 +138,54 @@ class Lexer
 
         // Regular expressions for this entire grammar
         const regex commentREGEX = regex(R"(^\/\*.*?\*\/)");
-        const regex spaceREGEX = regex(R"(^[ \t]+)");
+        const regex spaceREGEX = regex(R"(^[ \t])");
         const regex keywordREGEX = regex("^(print|while|if|int|string|boolean|true|false)");
         const regex idREGEX = regex(R"(^[a-z])");
         const regex symbolREGEX = regex(R"(^(\{|\}|"|\(|\)|==|!=|\+|=|\$|\r?\n))");
         const regex digitREGEX = regex(R"(^[0-9])");
         const regex charREGEX = regex(R"(^[a-z|\s])");
+
+        // Converts any symbol or keyword to a name
+        string symToName(string symbol)
+        {
+            string printVal;
+            unordered_map<string, string> symbolMap = 
+            {
+                // Keywords
+                {"print", "PRINT"},
+                {"while", "WHILE"},
+                {"if", "IF"},
+                {"int", "VARIABLE_TYPE"},
+                {"string", "VARIABLE_TYPE"},
+                {"boolean", "VARIABLE_TYPE"},
+                {"true", "BOOL_VAL"},
+                {"false", "BOOL_VAL"},
+
+                // Symbols
+                {"{", "OPEN_CURLY"},
+                {"}", "CLOSE_CURLY"},
+                {"\"", "QUOTE"},
+                {"(", "OPEN_PARENTHESIS"},
+                {")", "CLOSE_PARENTHESIS"},
+                {"==", "EQUALITY_OP"},
+                {"!=", "INEQUALITY_OP"},
+                {"+", "ADDITION_OP"},
+                {"=", "ASSIGNMENT_OP"},
+                {"$", "EOP"}
+            };
+
+            // Search for the symbol and return its name
+            if (symbolMap.find(symbol) != symbolMap.end()) 
+            {
+                printVal = symbolMap[symbol];
+            }
+            else 
+            {
+                printVal = "UNKNOWN"; 
+            }
+
+            return printVal;
+        }
 };
 
 #endif
