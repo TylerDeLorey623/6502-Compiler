@@ -11,7 +11,8 @@ TARGET = main
 SRCS = main.cpp
 
 # Header files
-HEADERS = Token.h
+HEADERS = Token.h \
+		  Lexer.h
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)
@@ -29,7 +30,7 @@ main.o: main.cpp $(HEADERS)
 
 # Rule to run the executable
 run: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) ${ARGS}
 
 # Clean rule to remove generated files
 # Uses del if on windows, uses rm on Unix-like systems (and Git Bash)
