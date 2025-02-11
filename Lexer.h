@@ -35,13 +35,34 @@ class Lexer
                     matches.emplace_back("KEYWORD", match.str(0));
                 }
                 // Detects IDs
-                if (regex_search(programSnippet, match, idREGEX))
+                if (!inQuotes && regex_search(programSnippet, match, idREGEX))
                 {
                     matches.emplace_back("ID", match.str(0));
                 }
                 // Detects symbols
                 if (regex_search(programSnippet, match, symbolREGEX))
                 {
+                    // Flip boolean value to detect characters if quotes appear
+                    if (match.str(0) == "\"")
+                    {
+                        if (inQuotes)
+                        {
+                            inQuotes = false;
+                        }
+                        else
+                        {
+                            inQuotes = true;
+                        }
+                    }
+                    // Symbols cannot appear in quotes, so throw error
+                    else if (inQuotes)
+                    {
+                        cout << "Unrecognized Token: " << programSnippet[0] << endl;
+                        errorCount++;
+                        currentPosition++;
+                        continue;
+                    }
+
                     matches.emplace_back("SYMBOL", match.str(0));
                 }
                 // Detects digits
@@ -73,13 +94,14 @@ class Lexer
 
                     cout << longestMatch.first << " " << longestMatch.second << endl;
                     currentPosition += longestMatch.second.length();
+                    matches.clear();
                 }
                 // If there were no matches, there was an unrecognized token
                 else
                 {
                     cout << "Unrecognized Token: " << programSnippet[0] << endl;
                     errorCount++;
-                    break;
+                    currentPosition++;
                 }
             }
 
@@ -93,18 +115,16 @@ class Lexer
         int currentPosition = 0;
         bool inQuotes = false;
 
-        string storedKeyword;
-
         int errorCount = 0;
 
         // Regular expressions for this entire grammar
-        regex commentREGEX = regex(R"(^\/\*.*?\*\/)");
-        regex spaceREGEX = regex(R"(^\s+)");
-        regex keywordREGEX = regex(R"(^\b(print|while|if|int|string|boolean|true|false)\b)");
-        regex idREGEX = regex(R"(^[a-z])");
-        regex symbolREGEX = regex(R"(^(\{|\}|"|\(|\)|==|!=|\+|=|\$))");
-        regex digitREGEX = regex(R"(^[0-9])");
-        regex charREGEX = regex(R"(^[a-zA-Z])");
+        const regex commentREGEX = regex(R"(^\/\*.*?\*\/)");
+        const regex spaceREGEX = regex(R"(^\s+)");
+        const regex keywordREGEX = regex("^(print|while|if|int|string|boolean|true|false)");
+        const regex idREGEX = regex(R"(^[a-z])");
+        const regex symbolREGEX = regex(R"(^(\{|\}|"|\(|\)|==|!=|\+|=|\$))");
+        const regex digitREGEX = regex(R"(^[0-9])");
+        const regex charREGEX = regex(R"(^[a-z|\s])");
 };
 
 #endif
