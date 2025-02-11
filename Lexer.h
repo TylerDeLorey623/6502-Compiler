@@ -1,6 +1,11 @@
 #ifndef LEXER_H
 #define LEXER_H
 
+// Globals
+int LINEROW = 1;
+int LINECOLUMN = 1;
+
+// The Lexer Class
 class Lexer 
 {
     public:
@@ -26,6 +31,7 @@ class Lexer
                 if (regex_search(programSnippet, match, commentREGEX) || (!inQuotes && regex_search(programSnippet, match, spaceREGEX)))
                 {
                     currentPosition += match.length(0);
+                    LINECOLUMN += match.length(0);
                     continue;
                 }
 
@@ -53,6 +59,14 @@ class Lexer
                         {
                             inQuotes = true;
                         }
+                    }
+                    // If code moves on to a new line, adjust line row/column values
+                    else if (match.str(0) == "\n" || match.str(0) == "\r" || match.str(0) == "\r\n")
+                    {
+                        LINECOLUMN = 1;
+                        LINEROW++;
+                        currentPosition += match.length(0);
+                        continue;
                     }
                     // Symbols cannot appear in quotes, so throw error
                     else if (inQuotes)
@@ -92,8 +106,9 @@ class Lexer
                         }
                     }
 
-                    cout << longestMatch.first << " " << longestMatch.second << endl;
+                    cout << longestMatch.first << " " << longestMatch.second << " at (" << LINEROW << ":" << LINECOLUMN << ")" << endl;
                     currentPosition += longestMatch.second.length();
+                    LINECOLUMN += longestMatch.second.length();
                     matches.clear();
                 }
                 // If there were no matches, there was an unrecognized token
@@ -119,10 +134,10 @@ class Lexer
 
         // Regular expressions for this entire grammar
         const regex commentREGEX = regex(R"(^\/\*.*?\*\/)");
-        const regex spaceREGEX = regex(R"(^\s+)");
+        const regex spaceREGEX = regex(R"(^[ \t]+)");
         const regex keywordREGEX = regex("^(print|while|if|int|string|boolean|true|false)");
         const regex idREGEX = regex(R"(^[a-z])");
-        const regex symbolREGEX = regex(R"(^(\{|\}|"|\(|\)|==|!=|\+|=|\$))");
+        const regex symbolREGEX = regex(R"(^(\{|\}|"|\(|\)|==|!=|\+|=|\$|\r?\n))");
         const regex digitREGEX = regex(R"(^[0-9])");
         const regex charREGEX = regex(R"(^[a-z|\s])");
 };
