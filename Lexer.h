@@ -20,7 +20,7 @@ class Lexer
             while (currentPosition < size)
             {
                 string programSnippet = program.substr(currentPosition);
-                vector< pair < string, string > > matches;
+                vector< pair <string, string> > matches;
 
                 // Ignores all comments and whitespace
                 if (regex_search(programSnippet, match, commentREGEX) || (!inQuotes && regex_search(programSnippet, match, spaceREGEX)))
@@ -56,21 +56,32 @@ class Lexer
                 }
 
                 // Gets the longest match
-                if (!matches.empty())
-                {
-                    auto longestMatch = max_element(matches.begin(), matches.end());
-                    cout << longestMatch->first << " " << longestMatch->second << endl;
-                    currentPosition += longestMatch->second.length();
+                if (!matches.empty()) {
+                    pair<string, string> longestMatch = matches[0];
+
+                    // Find the longest match (with values at the beginning of vector having priority for rule order)
+                    for (int i = 0, n = matches.size(); i < n; i++)
+                    {
+                        string currentValue = matches[i].first;
+                        string currentWord = matches[i].second;
+                        if (currentWord.length() > longestMatch.second.length())
+                        {
+                            longestMatch.first = currentValue;
+                            longestMatch.second = currentWord;
+                        }
+                    }
+
+                    cout << longestMatch.first << " " << longestMatch.second << endl;
+                    currentPosition += longestMatch.second.length();
                 }
+                // If there were no matches, there was an unrecognized token
                 else
                 {
                     cout << "Unrecognized Token: " << programSnippet[0] << endl;
                     errorCount++;
                     break;
                 }
-
             }
-
 
             return make_pair(tokens, errorCount);
         }
