@@ -145,34 +145,36 @@ class Lexer
         const regex digitREGEX = regex(R"(^[0-9])");
         const regex charREGEX = regex(R"(^[a-z|\s])");
 
+        // Map which corresponds the symbols/keywords to words used for the debugger and tokenization
+        unordered_map<string, string> symbolMap = 
+        {
+            // Keywords
+            {"print", "PRINT"},
+            {"while", "WHILE"},
+            {"if", "IF"},
+            {"int", "VARIABLE_TYPE"},
+            {"string", "VARIABLE_TYPE"},
+            {"boolean", "VARIABLE_TYPE"},
+            {"true", "BOOL_VAL"},
+            {"false", "BOOL_VAL"},
+
+            // Symbols
+            {"{", "OPEN_CURLY"},
+            {"}", "CLOSE_CURLY"},
+            {"\"", "QUOTE"},
+            {"(", "OPEN_PARENTHESIS"},
+            {")", "CLOSE_PARENTHESIS"},
+            {"==", "EQUALITY_OP"},
+            {"!=", "INEQUALITY_OP"},
+            {"+", "ADDITION_OP"},
+            {"=", "ASSIGNMENT_OP"},
+            {"$", "EOP"}
+        };
+
         // Converts any symbol or keyword to a name
         string symToName(string symbol)
         {
             string printVal;
-            unordered_map<string, string> symbolMap = 
-            {
-                // Keywords
-                {"print", "PRINT"},
-                {"while", "WHILE"},
-                {"if", "IF"},
-                {"int", "VARIABLE_TYPE"},
-                {"string", "VARIABLE_TYPE"},
-                {"boolean", "VARIABLE_TYPE"},
-                {"true", "BOOL_VAL"},
-                {"false", "BOOL_VAL"},
-
-                // Symbols
-                {"{", "OPEN_CURLY"},
-                {"}", "CLOSE_CURLY"},
-                {"\"", "QUOTE"},
-                {"(", "OPEN_PARENTHESIS"},
-                {")", "CLOSE_PARENTHESIS"},
-                {"==", "EQUALITY_OP"},
-                {"!=", "INEQUALITY_OP"},
-                {"+", "ADDITION_OP"},
-                {"=", "ASSIGNMENT_OP"},
-                {"$", "EOP"}
-            };
 
             // Search for the symbol and return its name
             if (symbolMap.find(symbol) != symbolMap.end()) 
