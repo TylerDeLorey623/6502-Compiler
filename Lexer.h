@@ -149,9 +149,9 @@ class Lexer
         unordered_map<string, string> symbolMap = 
         {
             // Keywords
-            {"print", "PRINT"},
-            {"while", "WHILE"},
-            {"if", "IF"},
+            {"print", "PRINT_STATEMENT"},
+            {"while", "WHILE_STATEMENT"},
+            {"if", "IF_STATEMENT"},
             {"int", "VARIABLE_TYPE"},
             {"string", "VARIABLE_TYPE"},
             {"boolean", "VARIABLE_TYPE"},
