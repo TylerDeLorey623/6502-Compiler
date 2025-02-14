@@ -38,7 +38,7 @@ class Lexer
                 }
 
                 // Detects keywords
-                if (regex_search(programSnippet, match, keywordREGEX))
+                if (!inQuotes && regex_search(programSnippet, match, keywordREGEX))
                 {
                     matches.emplace_back(symToName(match.str(0)), match.str(0));
                 }
