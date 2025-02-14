@@ -12,19 +12,43 @@ using namespace std;
 // Splits up the programs by the delimiter
 vector<string> splitPrograms(const string& input, const char delimiter)
 {
-    vector<string> segments;
-    stringstream stream(input);
-    string str;
+    const regex commentBeginREGEX = regex(R"(^\/\*)");
+    const regex commentEndREGEX = regex(R"(^\*\/)");
 
-    while (getline(stream, str, delimiter))
+    vector<string> segments;
+    string str = "";
+    bool insideComment = false;
+    
+    for (int currentPos = 0, size = input.size(); currentPos < size; currentPos++)
     {
-        segments.emplace_back(str + "$");
-    }
+        // Detect comments (delimiter in comments will not separate program)
+        string snippet = input.substr(currentPos);
+        smatch match;
+        if (regex_search(snippet, match, commentBeginREGEX))
+        {
+            insideComment = true;
+        }
+        else if (regex_search(snippet, match, commentEndREGEX))
+        {
+            insideComment = false;
+        }
+
+        // Add character to current program
+        str += input[currentPos];
+
+        // If that character is the delimiter, add a segment and start creating a new string
+        if (input[currentPos] == delimiter && !insideComment)
+        {
+            segments.emplace_back(str);
+            str = "";
+        }
+    }  
 
     // Test if last character is the delimiter for warning error
     if (input.back() != delimiter)
     {
-        cout << "WARNING: The final program does not end with a '" << delimiter << "'. Temporarily added the EOP for the compilation process." << endl;
+        segments.emplace_back(str);
+        cout << "WARNING: The final program does not end with a '" << delimiter << "'. Temporarily added the EOP for the compilation process." << endl << endl;
     }
 
     return segments;
