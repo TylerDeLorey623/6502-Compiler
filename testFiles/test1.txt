@@ -1,0 +1,10 @@
+{
+    /* THIS IS SAMPLE CODE */
+    int a
+    a = 0 + 1
+    boolean b
+    b = true
+    string c
+    c = "hello world"
+    print(c)
+}$
