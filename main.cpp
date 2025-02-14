@@ -42,13 +42,11 @@ vector<string> splitPrograms(const string& input, const char delimiter)
             segments.emplace_back(str);
             str = "";
         }
-    }  
-
-    // Test if last character is the delimiter for warning error
-    if (input.back() != delimiter)
+    }
+    
+    if (input.back() != delimiter || insideComment)
     {
         segments.emplace_back(str);
-        cout << "WARNING: The final program does not end with a '" << delimiter << "'. Temporarily added the EOP for the compilation process." << endl << endl;
     }
 
     return segments;
@@ -81,25 +79,27 @@ int main(int argc, char* argv[])
     code.erase(code.find_last_not_of(" \t\n\r\f\v") + 1);
 
     // Vector that stores programs separated with $
-    vector<string> programs = splitPrograms(code, '$');
+    char delimiter = '$';
+    vector<string> programs = splitPrograms(code, delimiter);
 
     // Compile each program
     for (int i = 0, size = programs.size(); i < size; i++)
     {
         // LEXER
         cout << "INFO  Lexer - Lexing program " << i + 1 << "..." << endl;
-        Lexer currentLex = Lexer(programs[i]);
+        Lexer currentLex = Lexer(programs[i], delimiter);
         auto result = currentLex.tokenize();
 
         vector<Token> tokens = result.first;
-        int errors = result.second;
-
-        cout << "INFO  Lexer - Lex completed with " << errors << " error(s)" << endl;
+        int errors = result.second.first;
+        int warnings = result.second.second;
+        
+        cout << "INFO  Lexer - Lex completed with " << errors << " error(s) and " << warnings << " warning(s)";
 
         // PARSER
         // SEMANATIC ANALYSIS
         // CODE GEN
-        cout << endl;
+        cout << endl << endl;
     }
 
 }
