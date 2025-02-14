@@ -61,6 +61,8 @@ class Lexer
                         {
                             inQuotes = true;
                         }
+                        lastQuoteRow = LINEROW;
+                        lastQuoteCol = LINECOLUMN;
                     }
                     // If code moves on to a new line, adjust line row/column values
                     else if (match.str(0) == "\n" || match.str(0) == "\r" || match.str(0) == "\r\n")
@@ -76,6 +78,7 @@ class Lexer
                         cout << "ERROR Lexer - Error:" << LINEROW << ":" << LINECOLUMN << " Unrecognized Token: " << programSnippet[0] << endl;
                         errorCount++;
                         currentPosition++;
+                        LINECOLUMN++;
                         continue;
                     }
 
@@ -124,6 +127,13 @@ class Lexer
                 }
             }
 
+            // If still in quotes at the end, there is an unclosed string
+            if (inQuotes)
+            {
+                cout << "ERROR Lexer - Error: Unclosed string starting at (" << lastQuoteRow << ":" << lastQuoteCol << ")" << endl;
+                errorCount++;
+            }
+
             return make_pair(tokens, errorCount);
         }
 
@@ -134,7 +144,12 @@ class Lexer
         int currentPosition = 0;
         bool inQuotes = false;
 
+        // For total error count
         int errorCount = 0;
+        
+        // Determines positions of unclosed strings
+        int lastQuoteRow = 0;
+        int lastQuoteCol = 0;
 
         // Regular expressions for this entire grammar
         const regex commentREGEX = regex(R"(^\/\*.*?\*\/)");
