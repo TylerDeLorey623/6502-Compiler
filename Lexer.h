@@ -152,6 +152,11 @@ class Lexer
 
                     // Print results
                     cout << "DEBUG Lexer - " << longestMatch.first << " [ " << longestMatch.second << " ] found at (" << LINEROW << ":" << LINECOLUMN << ")" << endl;
+
+                    // Create token
+                    tokens.emplace_back(Token(longestMatch.first, longestMatch.second, LINEROW, LINECOLUMN));
+
+                    // Move to next section of the program
                     currentPosition += longestMatch.second.length();
                     LINECOLUMN += longestMatch.second.length();
                     matches.clear();
