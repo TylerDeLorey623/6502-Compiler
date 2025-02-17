@@ -1,0 +1,17 @@
+/* Test case for WhileStatement. Prints 23458 */
+{
+    int a
+    a = 1
+    {
+        int a
+        a = 2
+        print(a)
+    }
+    {
+        while (a != 5) {
+            a = 1 + a
+            print(a)
+        }
+        print(3 + a)
+    }
+} $

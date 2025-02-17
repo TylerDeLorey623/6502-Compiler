@@ -1,0 +1,12 @@
+/*  Provided By
+    - Compiler Tyrant
+    - Alan G Labouseur
+    - Program 1: Pass Lex, Parse, Semantic
+    - Program 2: Pass Lex, Parse, Semantic
+    - Program 3: Pass Lex, fail parse
+    - Program 4: Fail Lex
+*/
+{}$
+{{{{{{}}}}}}$
+{{{{{{}}}}}}}$
+{int    @}$

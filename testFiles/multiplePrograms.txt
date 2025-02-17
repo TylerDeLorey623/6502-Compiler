@@ -1,0 +1,14 @@
+/* Test case for multiple programs */
+{
+    print("i love compilers")
+    int a
+    a = 2
+    string s
+    s = "ha"
+}$
+{
+    int b
+    b = 4
+    string s
+    s = "hey"
+}$

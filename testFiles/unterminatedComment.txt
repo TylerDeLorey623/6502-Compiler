@@ -1,0 +1,2 @@
+/*  Unterminated Comment */
+{ int a /* unterminated comment }$

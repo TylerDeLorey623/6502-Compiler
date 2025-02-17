@@ -1,0 +1,7 @@
+/* Missing EOP */
+{
+    int b
+    b = 4
+    string s
+    s = "hey"
+}
