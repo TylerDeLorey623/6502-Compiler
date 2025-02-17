@@ -46,15 +46,16 @@ class Lexer
                     {
                         LINE += newLines;
                     }
-
+                    
                     currentPosition += match.length(0);
                     COLUMN += match.length(0);
+
                     continue;
                 }
                 // Detect if comment opens and doesn't close
                 else if (regex_search(programSnippet, match, commentBeginREGEX))
                 {
-                    log("WARNING", "Unclosed comment", LINE, COLUMN);
+                    log("WARNING", "Unterminated comment", LINE, COLUMN);
                     warningCount++;
                     currentPosition += match.length(0);
                     COLUMN += match.length(0);
@@ -104,17 +105,17 @@ class Lexer
                             inQuotes = true;
                         }
 
-                        // For unclosed strings
+                        // For unterminated strings
                         lastQuoteRow = LINE;
                         lastQuoteCol = COLUMN;
                     }
                     // If code moves on to a new line, adjust line row/column values
                     else if (match.str(0) == "\n" || match.str(0) == "\r" || match.str(0) == "\r\n")
                     {
-                        // If still in quotes at the end of a line, there is an unclosed string
+                        // If still in quotes at the end of a line, there is an unterminated string
                         if (inQuotes)
                         {
-                            log("ERROR", "Unclosed string", lastQuoteRow, lastQuoteCol);
+                            log("ERROR", "Unterminated string", lastQuoteRow, lastQuoteCol);
                             errorCount++;
                             inQuotes = false;
                         }
@@ -138,7 +139,7 @@ class Lexer
                     matches.emplace_back(symToName(match.str(0)), match.str(0));
                 }
                 // Detects digits
-                if (regex_search(programSnippet, match, digitREGEX))
+                if (!inQuotes && regex_search(programSnippet, match, digitREGEX))
                 {
                     matches.emplace_back("DIGIT", match.str(0));
                 }
@@ -185,17 +186,17 @@ class Lexer
                 }
             }
 
-            // If still in quotes at the end of the program, there is an unclosed string
+            // If still in quotes at the end of the program, there is an unterminated string
             if (inQuotes)
             {
-                log("ERROR", "Unclosed string", lastQuoteRow, lastQuoteCol);
+                log("ERROR", "Unterminated string", lastQuoteRow, lastQuoteCol);
                 errorCount++;
             }
 
             // Test if last character is the delimiter for warning error
             if (program.back() != delimiter || openComment)
             {
-                log("WARNING", "The final program didn't end with a '$', should be", LINE, COLUMN - 1);
+                log("WARNING", "The final program didn't end with a '$', should be", LINE, COLUMN);
                 warningCount++;
             }
             
@@ -220,7 +221,7 @@ class Lexer
         int errorCount = 0;
         int warningCount = 0;
         
-        // Determines positions of unclosed strings
+        // Determines positions of unterminated strings
         int lastQuoteRow = 0;
         int lastQuoteCol = 0;
 
