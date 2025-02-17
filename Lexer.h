@@ -32,12 +32,21 @@ class Lexer
             int size = program.size();
             while (currentPosition < size)
             {
+                // Beginning of program snippet represents what's trying to be matched with RegEx
                 string programSnippet = program.substr(currentPosition);
                 vector< pair <string, string> > matches;
 
                 // Ignores all comments and whitespace
                 if (regex_search(programSnippet, match, commentREGEX) || (!inQuotes && regex_search(programSnippet, match, spaceREGEX)))
                 {
+                    // If comment spanned multiple lines, adjust the LINEROW value
+                    string matched = match.str(0);
+                    int newLines = count(matched.begin(), matched.end(), '\n');
+                    if (newLines > 0)
+                    {
+                        LINEROW += newLines;
+                    }
+
                     currentPosition += match.length(0);
                     LINECOLUMN += match.length(0);
                     continue;
