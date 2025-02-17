@@ -86,20 +86,12 @@ int main(int argc, char* argv[])
     for (int i = 0, size = programs.size(); i < size; i++)
     {
         // LEXER
-        cout << "INFO  Lexer - Lexing program " << i + 1 << "..." << endl;
-        Lexer currentLex = Lexer(programs[i], delimiter);
-        auto result = currentLex.tokenize();
-
-        vector<Token> tokens = result.first;
-        int errors = result.second.first;
-        int warnings = result.second.second;
-        
-        cout << "INFO  Lexer - Lex completed with " << errors << " error(s) and " << warnings << " warning(s)";
+        Lexer currentLex = Lexer(i + 1, programs[i], delimiter);
+        vector<Token> tokens = currentLex.tokenize();
 
         // PARSER
         // SEMANATIC ANALYSIS
         // CODE GEN
-        cout << endl << endl;
+        cout << endl;
     }
-
 }
