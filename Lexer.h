@@ -4,8 +4,8 @@
 #include <unordered_map>
 
 // Globals
-int LINEROW = 1;
-int LINECOLUMN = 1;
+int LINE = 1;
+int COLUMN = 1;
 bool VERBOSE = true;
 
 // The Lexer Class
@@ -39,35 +39,35 @@ class Lexer
                 // Ignores all comments and whitespace
                 if (regex_search(programSnippet, match, commentREGEX) || (!inQuotes && regex_search(programSnippet, match, spaceREGEX)))
                 {
-                    // If comment spanned multiple lines, adjust the LINEROW value
+                    // If comment spanned multiple lines, adjust the LINE value
                     string matched = match.str(0);
                     int newLines = count(matched.begin(), matched.end(), '\n');
                     if (newLines > 0)
                     {
-                        LINEROW += newLines;
+                        LINE += newLines;
                     }
 
                     currentPosition += match.length(0);
-                    LINECOLUMN += match.length(0);
+                    COLUMN += match.length(0);
                     continue;
                 }
                 // Detect if comment opens and doesn't close
                 else if (regex_search(programSnippet, match, commentBeginREGEX))
                 {
-                    log("WARNING", "Unclosed comment", LINEROW, LINECOLUMN);
+                    log("WARNING", "Unclosed comment", LINE, COLUMN);
                     warningCount++;
                     currentPosition += match.length(0);
-                    LINECOLUMN += match.length(0);
+                    COLUMN += match.length(0);
                     openComment = true;
                     continue;
                 }
                 // Detect if comment closed but it never opened
                 else if (regex_search(programSnippet, match, commentEndREGEX))
                 {
-                    log("ERROR", "Unpaired */", LINEROW, LINECOLUMN);
+                    log("ERROR", "Unpaired */", LINE, COLUMN);
                     errorCount++;
                     currentPosition += match.length(0);
-                    LINECOLUMN += match.length(0);
+                    COLUMN += match.length(0);
                     continue;
                 }
 
@@ -75,7 +75,7 @@ class Lexer
                 if (openComment)
                 {
                     currentPosition++;
-                    LINECOLUMN++;
+                    COLUMN++;
                     continue;
                 }
 
@@ -105,8 +105,8 @@ class Lexer
                         }
 
                         // For unclosed strings
-                        lastQuoteRow = LINEROW;
-                        lastQuoteCol = LINECOLUMN;
+                        lastQuoteRow = LINE;
+                        lastQuoteCol = COLUMN;
                     }
                     // If code moves on to a new line, adjust line row/column values
                     else if (match.str(0) == "\n" || match.str(0) == "\r" || match.str(0) == "\r\n")
@@ -119,8 +119,8 @@ class Lexer
                             inQuotes = false;
                         }
 
-                        LINECOLUMN = 1;
-                        LINEROW++;
+                        COLUMN = 1;
+                        LINE++;
                         currentPosition += match.length(0);
                         
                         continue;
@@ -128,10 +128,10 @@ class Lexer
                     // Symbols cannot appear in quotes, so throw error
                     else if (inQuotes)
                     {
-                        log("ERROR", "Unrecognized Token [ " + string(1, programSnippet[0]) + " ]", LINEROW, LINECOLUMN);
+                        log("ERROR", "Unrecognized Token [ " + string(1, programSnippet[0]) + " ]", LINE, COLUMN);
                         errorCount++;
                         currentPosition++;
-                        LINECOLUMN++;
+                        COLUMN++;
                         continue;
                     }
 
@@ -165,22 +165,22 @@ class Lexer
                     }
 
                     // Print results
-                    log("DEBUG", longestMatch.first + " [ " + longestMatch.second + " ] found", LINEROW, LINECOLUMN);
+                    log("DEBUG", longestMatch.first + " [ " + longestMatch.second + " ] found", LINE, COLUMN);
 
                     // Create token
-                    tokens.emplace_back(Token(longestMatch.first, longestMatch.second, LINEROW, LINECOLUMN));
+                    tokens.emplace_back(Token(longestMatch.first, longestMatch.second, LINE, COLUMN));
 
                     // Move to next section of the program
                     currentPosition += longestMatch.second.length();
-                    LINECOLUMN += longestMatch.second.length();
+                    COLUMN += longestMatch.second.length();
                     matches.clear();
                 }
                 // If there were no matches, there was an unrecognized token
                 else
                 {
-                    log("ERROR", "Unrecognized Token [ " + string(1, programSnippet[0]) + " ]", LINEROW, LINECOLUMN);
+                    log("ERROR", "Unrecognized Token [ " + string(1, programSnippet[0]) + " ]", LINE, COLUMN);
                     errorCount++;
-                    LINECOLUMN++;
+                    COLUMN++;
                     currentPosition++;
                 }
             }
@@ -195,7 +195,7 @@ class Lexer
             // Test if last character is the delimiter for warning error
             if (program.back() != delimiter || openComment)
             {
-                log("WARNING", "The final program didn't end with a '$', should be", LINEROW, LINECOLUMN - 1);
+                log("WARNING", "The final program didn't end with a '$', should be", LINE, COLUMN - 1);
                 warningCount++;
             }
             
