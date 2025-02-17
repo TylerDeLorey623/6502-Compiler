@@ -138,6 +138,26 @@ class Lexer
 
                     matches.emplace_back(symToName(match.str(0)), match.str(0));
                 }
+                // Detect equality for SPECIFIC EDGE CASE (where comment is in between equality/inequality symbols)
+                if (regex_search(programSnippet, match, boolOPREGEX))
+                {
+                    // Makes sure when program snippet changes it covers the comment and the symbols
+                    adjustCommentPosition = match.length(0);
+
+                    // Regroups the symbols to make either != or ==
+                    string equality;
+                    if (programSnippet[0] == '!')
+                    {
+                        equality = "!=";
+                    }
+                    else
+                    {
+                        equality = "==";
+                    }
+
+                    equalityComment = true;
+                    matches.emplace_back(symToName(equality), equality);
+                }
                 // Detects digits
                 if (!inQuotes && regex_search(programSnippet, match, digitREGEX))
                 {
@@ -172,8 +192,19 @@ class Lexer
                     tokens.emplace_back(Token(longestMatch.first, longestMatch.second, LINE, COLUMN));
 
                     // Move to next section of the program
-                    currentPosition += longestMatch.second.length();
-                    COLUMN += longestMatch.second.length();
+                    if (!equalityComment)
+                    {
+                        currentPosition += longestMatch.second.length();
+                        COLUMN += longestMatch.second.length();
+                    }
+                    // If a comment appeared in between equality, adjust the snippet move for correct lineup)
+                    else
+                    {
+                        currentPosition += adjustCommentPosition;
+                        COLUMN += adjustCommentPosition;
+                        equalityComment = false;
+                    }
+
                     matches.clear();
                 }
                 // If there were no matches, there was an unrecognized token
@@ -217,6 +248,10 @@ class Lexer
         bool inQuotes = false;
         bool openComment = false;
 
+        // For that stupid edge case
+        bool equalityComment = false;
+        int adjustCommentPosition = 0;
+
         // For total error/warning count
         int errorCount = 0;
         int warningCount = 0;
@@ -234,6 +269,7 @@ class Lexer
         const regex keywordREGEX = regex("^(print|while|if|int|string|boolean|true|false)");
         const regex idREGEX = regex(R"(^[a-z])");
         const regex symbolREGEX = regex(R"(^(\{|\}|"|\(|\)|==|!=|\+|=|\$|\r?\n))");
+        const regex boolOPREGEX = regex(R"(^(!\/\*[\s\S]*?\*\/=|=\/\*[\s\S]*?\*\/=))");
         const regex digitREGEX = regex(R"(^[0-9])");
         const regex charREGEX = regex(R"(^[a-z|\s])");
 
