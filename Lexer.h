@@ -12,17 +12,21 @@ class Lexer
 {
     public:
         // Default constructor for the Lexer class
-        Lexer(const string inputCode, const char del)
+        Lexer(const int progNum, const string inputCode, const char del)
         {
+            this->programNumber = progNum;
             this->program = inputCode;
             this->delimiter = del;
         }
 
         // Tokenize the program to be used by the Parser
-        pair<vector<Token>, pair<int, int> > tokenize()
+        vector<Token> tokenize()
         {
             vector<Token> tokens;
             smatch match;
+
+            // Print starting INFO for this program
+            log("INFO", "Lexing program " + to_string(programNumber));
 
             int size = program.size();
             while (currentPosition < size)
@@ -40,8 +44,8 @@ class Lexer
                 // Detect if comment opens and doesn't close
                 else if (regex_search(programSnippet, match, commentBeginREGEX))
                 {
-                    cout << "ERROR Lexer - Unclosed Comment starting at (" << LINEROW << ":" << LINECOLUMN << ")" << endl;
-                    errorCount++;
+                    log("WARNING", "Unclosed comment", LINEROW, LINECOLUMN);
+                    warningCount++;
                     currentPosition += match.length(0);
                     LINECOLUMN += match.length(0);
                     openComment = true;
@@ -50,7 +54,7 @@ class Lexer
                 // Detect if comment closed but it never opened
                 else if (regex_search(programSnippet, match, commentEndREGEX))
                 {
-                    cout << "ERROR Lexer - Unpaired */ token at (" << LINEROW << ":" << LINECOLUMN << ")" << endl;
+                    log("ERROR", "Unpaired */", LINEROW, LINECOLUMN);
                     errorCount++;
                     currentPosition += match.length(0);
                     LINECOLUMN += match.length(0);
@@ -100,7 +104,7 @@ class Lexer
                         // If still in quotes at the end of a line, there is an unclosed string
                         if (inQuotes)
                         {
-                            cout << "ERROR Lexer - Unclosed string starting at (" << lastQuoteRow << ":" << lastQuoteCol << ")" << endl;
+                            log("ERROR", "Unclosed string", lastQuoteRow, lastQuoteCol);
                             errorCount++;
                             inQuotes = false;
                         }
@@ -114,7 +118,7 @@ class Lexer
                     // Symbols cannot appear in quotes, so throw error
                     else if (inQuotes)
                     {
-                        cout << "ERROR Lexer - Unrecognized Token [ " << programSnippet[0] << " ] at (" << LINEROW << ":" << LINECOLUMN << ")" << endl;
+                        log("ERROR", "Unrecognized Token [ " + string(1, programSnippet[0]) + " ]", LINEROW, LINECOLUMN);
                         errorCount++;
                         currentPosition++;
                         LINECOLUMN++;
@@ -151,7 +155,7 @@ class Lexer
                     }
 
                     // Print results
-                    cout << "DEBUG Lexer - " << longestMatch.first << " [ " << longestMatch.second << " ] found at (" << LINEROW << ":" << LINECOLUMN << ")" << endl;
+                    log("DEBUG", longestMatch.first + " [ " + longestMatch.second + " ] found", LINEROW, LINECOLUMN);
 
                     // Create token
                     tokens.emplace_back(Token(longestMatch.first, longestMatch.second, LINEROW, LINECOLUMN));
@@ -164,7 +168,7 @@ class Lexer
                 // If there were no matches, there was an unrecognized token
                 else
                 {
-                    cout << "ERROR Lexer - Unrecognized Token [ " << programSnippet[0] << " ] at (" << LINEROW << ":" << LINECOLUMN << ")" << endl;
+                    log("ERROR", "Unrecognized Token [ " + string(1, programSnippet[0]) + " ]", LINEROW, LINECOLUMN);
                     errorCount++;
                     LINECOLUMN++;
                     currentPosition++;
@@ -174,22 +178,27 @@ class Lexer
             // If still in quotes at the end of the program, there is an unclosed string
             if (inQuotes)
             {
-                cout << "ERROR Lexer - Error: Unclosed string starting at (" << lastQuoteRow << ":" << lastQuoteCol << ")" << endl;
+                log("ERROR", "Unclosed string", lastQuoteRow, lastQuoteCol);
                 errorCount++;
             }
 
             // Test if last character is the delimiter for warning error
             if (program.back() != delimiter || openComment)
             {
-                cout << "WARNING Lexer: The final program didn't end with a '$'" << endl;
+                log("WARNING", "The final program didn't end with a '$', should be", LINEROW, LINECOLUMN - 1);
                 warningCount++;
             }
+            
+            // Print ending INFO for this program
+            log("INFO", "Lex completed with " + to_string(errorCount) + " error(s) and " + to_string(warningCount) + " warning(s)");
 
-            return make_pair(tokens, make_pair(errorCount, warningCount));
+            // Returns tokens for this program
+            return tokens;
         }
 
     private:
         // Holds all of the code in the file
+        int programNumber = -1;
         string program;
         char delimiter;
 
@@ -244,7 +253,7 @@ class Lexer
         };
 
         // Converts any symbol or keyword to a name
-        string symToName(string symbol)
+        string symToName(const string symbol)
         {
             string printVal;
 
@@ -259,6 +268,37 @@ class Lexer
             }
 
             return printVal;
+        }
+
+        // Logs message for Lexer
+        void log(const string type, const string message, const int row = -1, const int column = -1)
+        {
+            // For good looking formatting
+            const int spaces = 9 - type.length();
+            if (spaces <= 0)
+            {
+                return;
+            }
+            
+            // Print type
+            cout << type;
+
+            // Adds correct number of spaces so all the messages line up.
+            for (int i = 0; i < spaces; i++)
+            {
+                cout << " ";
+            }
+            cout << "Lexer - ";
+
+            // If it is of type INFO, print starting or ending message for Lexer 
+            if (type == "INFO")
+            {
+                cout << message << endl;
+            }
+            else
+            {
+                cout << message << " at (" << row << ":" << column << ")" << endl;
+            }
         }
 };
 
