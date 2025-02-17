@@ -87,7 +87,13 @@ int main(int argc, char* argv[])
     {
         // LEXER
         Lexer currentLex = Lexer(i + 1, programs[i], delimiter);
-        vector<Token> tokens = currentLex.tokenize();
+        auto lexResult = currentLex.tokenize();
+        vector<Token> tokens = lexResult.first;
+        int errors = lexResult.second;
+        if (errors > 1)
+        {
+            continue;
+        }
 
         // PARSER
         // SEMANATIC ANALYSIS

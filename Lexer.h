@@ -21,7 +21,7 @@ class Lexer
         }
 
         // Tokenize the program to be used by the Parser
-        vector<Token> tokenize()
+        pair<vector<Token>, int> tokenize()
         {
             vector<Token> tokens;
             smatch match;
@@ -204,7 +204,7 @@ class Lexer
             log("INFO", "Lex completed with " + to_string(errorCount) + " error(s) and " + to_string(warningCount) + " warning(s)");
 
             // Returns tokens for this program
-            return tokens;
+            return make_pair(tokens, errorCount);
         }
 
     private:
