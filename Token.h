@@ -10,14 +10,14 @@ class Token
     public:
         string type;
         string lexeme;
-        int row;
+        int line;
         int column;
 
-        Token(string newType, string newLexeme, int newRow, int newColumn)
+        Token(string newType, string newLexeme, int newLine, int newColumn)
         {
             this->type = newType;
             this->lexeme = newLexeme;
-            this->row = newRow;
+            this->line = line;
             this->column = newColumn;
         }
 
