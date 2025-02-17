@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     // File IO
     if (argc != 2)
     {
-        cout << "Arguments were incorrect. Use command 'make ARGS='filename''." << endl;
+        cout << "Arguments were incorrect. Use command 'make FILE='filename''." << endl;
         return 1;
     }
 

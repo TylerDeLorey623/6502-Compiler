@@ -30,7 +30,7 @@ main.o: main.cpp $(HEADERS)
 
 # Rule to run the executable
 run: $(TARGET)
-	./$(TARGET) ${ARGS}
+	./$(TARGET) ${FILE}
 
 # Clean rule to remove generated files
 # Uses del if on windows, uses rm on Unix-like systems (and Git Bash)
@@ -39,4 +39,4 @@ clean:
 
 # For Valgrind
 valgrind: $(TARGET)
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./$(TARGET) ${ARGS}
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./$(TARGET) ${FILE}
