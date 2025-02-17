@@ -6,6 +6,7 @@
 // Globals
 int LINEROW = 1;
 int LINECOLUMN = 1;
+bool VERBOSE = true;
 
 // The Lexer Class
 class Lexer 
@@ -26,7 +27,7 @@ class Lexer
             smatch match;
 
             // Print starting INFO for this program
-            log("INFO", "Lexing program " + to_string(programNumber));
+            log("INFO", "Lexing Program #" + to_string(programNumber));
 
             int size = program.size();
             while (currentPosition < size)
@@ -215,7 +216,7 @@ class Lexer
         int lastQuoteCol = 0;
 
         // Regular expressions for this entire grammar
-        const regex commentREGEX = regex(R"(^\/\*.*?\*\/)");
+        const regex commentREGEX = regex(R"(^\/\*[\s\S]*?\*\/)");
         const regex commentBeginREGEX = regex(R"(^\/\*)");
         const regex commentEndREGEX = regex(R"(^\*\/)");
 
@@ -273,31 +274,36 @@ class Lexer
         // Logs message for Lexer
         void log(const string type, const string message, const int row = -1, const int column = -1)
         {
-            // For good looking formatting
-            const int spaces = 9 - type.length();
-            if (spaces <= 0)
+            // Only outputs if verbose mode is on or its INFO
+            if (VERBOSE || type != "DEBUG")
             {
-                return;
-            }
-            
-            // Print type
-            cout << type;
+                // For good looking formatting
+                const int spaceCount = 8;
+                const int spaces = spaceCount - type.length();
+                if (spaces <= 0)
+                {
+                    return;
+                }
+                
+                // Print type
+                cout << type;
 
-            // Adds correct number of spaces so all the messages line up.
-            for (int i = 0; i < spaces; i++)
-            {
-                cout << " ";
-            }
-            cout << "Lexer - ";
+                // Adds correct number of spaces so all the messages line up.
+                for (int i = 0; i < spaces; i++)
+                {
+                    cout << " ";
+                }
+                cout << "Lexer - ";
 
-            // If it is of type INFO, print starting or ending message for Lexer 
-            if (type == "INFO")
-            {
-                cout << message << endl;
-            }
-            else
-            {
-                cout << message << " at (" << row << ":" << column << ")" << endl;
+                // If it is of type INFO, print starting or ending message for Lexer 
+                if (type == "INFO")
+                {
+                    cout << message << endl;
+                }
+                else
+                {
+                    cout << message << " at (" << row << ":" << column << ")" << endl;
+                }
             }
         }
 };
