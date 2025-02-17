@@ -168,6 +168,11 @@ class Lexer
                 {
                     matches.emplace_back("CHAR", match.str(0));
                 }
+                // Detects spaces
+                if (inQuotes && regex_search(programSnippet, match, spaceREGEX))
+                {
+                    matches.emplace_back("SPACE", match.str(0));
+                }
 
                 // Gets the longest match
                 if (!matches.empty()) {
@@ -271,7 +276,7 @@ class Lexer
         const regex symbolREGEX = regex(R"(^(\{|\}|"|\(|\)|==|!=|\+|=|\$|\r?\n))");
         const regex boolOPREGEX = regex(R"(^(!\/\*[\s\S]*?\*\/=|=\/\*[\s\S]*?\*\/=))");
         const regex digitREGEX = regex(R"(^[0-9])");
-        const regex charREGEX = regex(R"(^[a-z|\s])");
+        const regex charREGEX = regex(R"(^[a-z])");
 
         // Map which corresponds the symbols/keywords to words used for the debugger and tokenization
         unordered_map<string, string> symbolMap = 
