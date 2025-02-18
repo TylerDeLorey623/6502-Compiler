@@ -85,6 +85,8 @@ int main(int argc, char* argv[])
     // Compile each program
     for (int i = 0, size = programs.size(); i < size; i++)
     {
+        cout << endl;
+        
         // LEXER
         Lexer currentLex = Lexer(i + 1, programs[i], delimiter);
         auto lexResult = currentLex.tokenize();
@@ -98,6 +100,5 @@ int main(int argc, char* argv[])
         // PARSER
         // SEMANATIC ANALYSIS
         // CODE GEN
-        cout << endl;
     }
 }
