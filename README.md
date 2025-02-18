@@ -2,7 +2,7 @@
 This compiler is written in **C++**. 
 
 ## Branch for Grading
-For grading purposes, the main branch will constantly keep being updated for the current project, so to get the copy of a completed project with no additions for future projects, check the **branch for that specific project** in order to be graded. Do NOT grade the main branch please. :) 
+For grading purposes, the main branch will constantly keep being updated for the current project, so to get the copy of a completed project with no additions from future projects, check the **branch for that specific project** for grading. Do NOT grade the main branch please. :) 
 
 ## Running the Compiler
 ### In order to run the C++ code, you need a couple things set up
