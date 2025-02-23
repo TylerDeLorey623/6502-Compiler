@@ -12,7 +12,8 @@ SRCS = main.cpp
 
 # Header files
 HEADERS = Token.h \
-		  Lexer.h
+		  Lexer.h \
+		  Parser.h
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)
