@@ -38,6 +38,34 @@ class Parser
         int errorCount = 0;
         int warningCount = 0;
 
+        // Logging function for Parser
+        void log(const string type, const string message)
+        {
+            // Only outputs if verbose mode is on or its INFO
+            if (VERBOSE || type != "DEBUG")
+            {
+                // For good looking formatting
+                const int spaceCount = 8;
+                const int spaces = spaceCount - type.length();
+                if (spaces <= 0)
+                {
+                    return;
+                }
+                
+                // Print type
+                cout << type;
+
+                // Adds correct number of spaces so all the messages line up.
+                for (int i = 0; i < spaces; i++)
+                {
+                    cout << " ";
+                }
+                cout << "Parser - ";
+
+                cout << message << endl;
+            }
+        }
+
         void match(string expectedTokenType)
         {
             if (currentToken.type == expectedTokenType)
@@ -49,10 +77,8 @@ class Parser
             }
             else
             { 
-                cout << "EXPECTED " << expectedTokenType << " BUT FOUND " << currentToken.type << endl;
-                currentIndex++;
-                currentToken = tokens[currentIndex];
-                currentTokenType = currentToken.type;
+                string errMessage = "EXPECTED [" + expectedTokenType + "] BUT FOUND [" + currentToken.type + "] with value '" + currentToken.lexeme + "' at (" + to_string(currentToken.line) + ":" + to_string(currentToken.column) + ")"; 
+                log("ERROR", errMessage);
             }
         }
 
@@ -228,7 +254,15 @@ class Parser
 
         void parseId()
         {
-            match("CHAR");
+            // Extra logic for difference between CHAR and ID
+            if (currentTokenType == "CHAR")
+            {
+                match("CHAR");
+            }
+            else
+            {
+                match("ID");
+            }
         }
 
         void parseCharList()
