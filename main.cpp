@@ -5,7 +5,9 @@
 #include <regex>
 
 #include "Token.h"
+
 #include "Lexer.h"
+#include "Parser.h"
 
 using namespace std;
 
@@ -92,12 +94,15 @@ int main(int argc, char* argv[])
         auto lexResult = currentLex.tokenize();
         vector<Token> tokens = lexResult.first;
         int errors = lexResult.second;
-        if (errors > 1)
+        if (errors > 0)
         {
             continue;
         }
 
         // PARSER
+        Parser currentParse = Parser(i + 1, tokens, delimiter);
+        currentParse.parse();
+
         // SEMANATIC ANALYSIS
         // CODE GEN
     }
