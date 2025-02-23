@@ -1,0 +1,7 @@
+#ifndef VERBOSE_H
+#define VERBOSE_H
+
+// GLOBAL VERBOSE MODE FOR COMPILER
+bool VERBOSE = true;
+
+#endif

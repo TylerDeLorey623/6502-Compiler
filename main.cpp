@@ -4,6 +4,7 @@
 #include <vector>
 #include <regex>
 
+#include "Verbose.h"
 #include "Token.h"
 
 #include "Lexer.h"
@@ -98,6 +99,8 @@ int main(int argc, char* argv[])
         {
             continue;
         }
+
+        cout << endl;
 
         // PARSER
         Parser currentParse = Parser(i + 1, tokens, delimiter);

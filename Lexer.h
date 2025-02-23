@@ -6,7 +6,6 @@
 // Globals
 int LINE = 1;
 int COLUMN = 1;
-bool VERBOSE = true;
 
 // The Lexer Class
 class Lexer 
