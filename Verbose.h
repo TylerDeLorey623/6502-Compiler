@@ -2,6 +2,6 @@
 #define VERBOSE_H
 
 // GLOBAL VERBOSE MODE FOR COMPILER
-bool VERBOSE = true;
+const bool VERBOSE = true;
 
 #endif
