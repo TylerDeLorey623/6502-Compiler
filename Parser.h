@@ -275,6 +275,7 @@ class Parser
                     match("INEQUALITY_OP");
                 }
                 parseExpr();
+                match("CLOSE_PARENTHESIS");
             }
             // Will give error if type isn't a boolean value
             else
