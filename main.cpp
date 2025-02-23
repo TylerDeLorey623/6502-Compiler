@@ -12,48 +12,9 @@
 
 using namespace std;
 
-// Splits up the programs by the delimiter
-vector<string> splitPrograms(const string& input, const char delimiter)
-{
-    const regex commentBeginREGEX = regex(R"(^\/\*)");
-    const regex commentEndREGEX = regex(R"(^\*\/)");
-
-    vector<string> segments;
-    string str = "";
-    bool insideComment = false;
-    
-    for (int currentPos = 0, size = input.size(); currentPos < size; currentPos++)
-    {
-        // Detect comments (delimiter in comments will not separate program)
-        string snippet = input.substr(currentPos);
-        smatch match;
-        if (regex_search(snippet, match, commentBeginREGEX))
-        {
-            insideComment = true;
-        }
-        else if (regex_search(snippet, match, commentEndREGEX))
-        {
-            insideComment = false;
-        }
-
-        // Add character to current program
-        str += input[currentPos];
-
-        // If that character is the delimiter, add a segment and start creating a new string
-        if (input[currentPos] == delimiter && !insideComment)
-        {
-            segments.emplace_back(str);
-            str = "";
-        }
-    }
-    
-    if (input.back() != delimiter || insideComment)
-    {
-        segments.emplace_back(str);
-    }
-
-    return segments;
-}
+// Prototypes for functions in file
+void log(const string type, const string message);
+vector<string> splitPrograms(const string& input, const char delimiter);
 
 
 int main(int argc, char* argv[]) 
@@ -95,18 +56,91 @@ int main(int argc, char* argv[])
         auto lexResult = currentLex.tokenize();
         vector<Token> tokens = lexResult.first;
         int errors = lexResult.second;
-        if (errors > 0)
-        {
-            continue;
-        }
 
         cout << endl;
 
         // PARSER
+        if (errors > 0)
+        {
+            log("INFO", "Parsing skipped due to Lex error(s)");
+            continue;
+        }
+
         Parser currentParse = Parser(i + 1, tokens, delimiter);
         currentParse.parse();
 
         // SEMANATIC ANALYSIS
         // CODE GEN
     }
+}
+
+// Logging function for overall Compiler
+void log(const string type, const string message)
+{
+    // Only outputs if verbose mode is on or its INFO
+    if (VERBOSE || type != "DEBUG")
+    {
+        // For good looking formatting
+        const int spaceCount = 8;
+        const int spaces = spaceCount - type.length();
+        if (spaces <= 0)
+        {
+            return;
+        }
+        
+        // Print type
+        cout << type;
+
+        // Adds correct number of spaces so all the messages line up.
+        for (int i = 0; i < spaces; i++)
+        {
+            cout << " ";
+        }
+        cout << "Compiler - ";
+
+        cout << message << endl;
+    }
+}
+
+// Splits up the programs by the delimiter
+vector<string> splitPrograms(const string& input, const char delimiter)
+{
+    const regex commentBeginREGEX = regex(R"(^\/\*)");
+    const regex commentEndREGEX = regex(R"(^\*\/)");
+
+    vector<string> segments;
+    string str = "";
+    bool insideComment = false;
+    
+    for (int currentPos = 0, size = input.size(); currentPos < size; currentPos++)
+    {
+        // Detect comments (delimiter in comments will not separate program)
+        string snippet = input.substr(currentPos);
+        smatch match;
+        if (regex_search(snippet, match, commentBeginREGEX))
+        {
+            insideComment = true;
+        }
+        else if (regex_search(snippet, match, commentEndREGEX))
+        {
+            insideComment = false;
+        }
+
+        // Add character to current program
+        str += input[currentPos];
+
+        // If that character is the delimiter, add a segment and start creating a new string
+        if (input[currentPos] == delimiter && !insideComment)
+        {
+            segments.emplace_back(str);
+            str = "";
+        }
+    }
+    
+    if (input.back() != delimiter || insideComment)
+    {
+        segments.emplace_back(str);
+    }
+
+    return segments;
 }
