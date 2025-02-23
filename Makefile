@@ -11,7 +11,8 @@ TARGET = main
 SRCS = main.cpp
 
 # Header files
-HEADERS = Token.h \
+HEADERS = Verbose.h \
+		  Token.h \
 		  Lexer.h \
 		  Parser.h
 
