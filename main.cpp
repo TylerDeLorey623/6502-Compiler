@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
         // PARSER
         if (errors > 0)
         {
-            log("INFO", "Parsing skipped due to Lex error(s)");
+            log("INFO", "Parsing for Program #" + to_string(i + 1) + " skipped due to Lex error(s)");
             continue;
         }
 
