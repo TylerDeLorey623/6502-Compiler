@@ -25,7 +25,10 @@ class Parser
         // Validates the tokens
         void parse()
         {
+            log("INFO", "Parsing Program #" + to_string(programNumber));
+            log("DEBUG", "parse()");
             parseProgram();
+            log("INFO", "Parse completed with " + to_string(errorCount) + " error(s) and " + to_string(warningCount) + " warning(s)");
         }
 
     private:
@@ -91,20 +94,22 @@ class Parser
                 }
             }
             else
-            { 
-                const string errMessage = "EXPECTED [" + expectedTokenType + "] BUT FOUND [" + currentTokenType + "] with value '" + currentToken->lexeme + "' at (" + to_string(currentToken->line) + ":" + to_string(currentToken->column) + ")"; 
-                log("ERROR", errMessage);
+            {  
+                log("ERROR", "EXPECTED [" + expectedTokenType + "] BUT FOUND [" + currentTokenType + "] with value '" + currentToken->lexeme + "' at (" + to_string(currentToken->line) + ":" + to_string(currentToken->column) + ")");
+                errorCount++;
             }
         }
 
         void parseProgram()
         {
+            log("DEBUG", "parseProgram()");
             parseBlock();
             match("EOP");
         }
 
         void parseBlock()
         {
+            log("DEBUG", "parseBlock()");
             match("OPEN_CURLY");
             parseStatementList();
             match("CLOSE_CURLY");
@@ -112,6 +117,7 @@ class Parser
 
         void parseStatementList()
         {
+            log("DEBUG", "parseStatementList()");
             if (currentTokenType == "PRINT_STATEMENT" || currentTokenType == "ID" || 
                 currentTokenType == "I_VARTYPE" || currentTokenType == "S_VARTYPE" || currentTokenType == "B_VARTYPE" ||
                 currentTokenType == "WHILE_STATEMENT" || currentTokenType == "IF_STATEMENT" || currentTokenType == "OPEN_CURLY")
@@ -129,6 +135,7 @@ class Parser
 
         void parseStatement()
         {
+            log("DEBUG", "parseStatement()");
             if (currentTokenType == "PRINT_STATEMENT")
             {
                 parsePrintStatement();
@@ -158,6 +165,7 @@ class Parser
 
         void parsePrintStatement()
         {
+            log("DEBUG", "parsePrintStatement()");
             match("PRINT_STATEMENT");
             match("OPEN_PARENTHESIS");
             parseExpr();
@@ -166,6 +174,7 @@ class Parser
 
         void parseAssignmentStatement()
         {
+            log("DEBUG", "parseAssignmentStatement()");
             parseId();
             match("ASSIGNMENT_OP");
             parseExpr();
@@ -173,6 +182,7 @@ class Parser
 
         void parseVarDecl()
         {
+            log("DEBUG", "parseVarDecl()");
             if (currentTokenType == "I_VARTYPE")
             {
                 match("I_VARTYPE");
@@ -193,6 +203,7 @@ class Parser
 
         void parseWhileStatement()
         {
+            log("DEBUG", "parseWhileStatement()");
             match("WHILE_STATEMENT");
             parseBooleanExpr();
             parseBlock();
@@ -200,6 +211,7 @@ class Parser
 
         void parseIfStatement()
         {
+            log("DEBUG", "parseIfStatement()");
             match("IF_STATEMENT");
             parseBooleanExpr();
             parseBlock();
@@ -207,6 +219,7 @@ class Parser
 
         void parseExpr()
         {
+            log("DEBUG", "parseExpr()");
             if (currentTokenType == "DIGIT")
             {
                 parseIntExpr();
@@ -228,6 +241,7 @@ class Parser
 
         void parseIntExpr()
         {
+            log("DEBUG", "parseIntExpr()");
             match("DIGIT");
             if (currentTokenType == "ADDITION_OP")
             {
@@ -238,6 +252,7 @@ class Parser
 
         void parseStringExpr()
         {
+            log("DEBUG", "parseStringExpr()");
             match("QUOTE");
             parseCharList();
             match("QUOTE");
@@ -245,6 +260,7 @@ class Parser
 
         void parseBooleanExpr()
         {
+            log("DEBUG", "parseBooleanExpr()");
             if (currentTokenType == "OPEN_PARENTHESIS")
             {
                 match("OPEN_PARENTHESIS");
@@ -269,6 +285,7 @@ class Parser
 
         void parseId()
         {
+            log("DEBUG", "parseId()");
             // Extra logic for difference between CHAR and ID
             if (currentTokenType == "CHAR")
             {
@@ -283,6 +300,7 @@ class Parser
 
         void parseCharList()
         {
+            log("DEBUG", "parseCharList()");
             if (currentTokenType == "CHAR")
             {
                 match("CHAR");
