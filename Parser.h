@@ -14,8 +14,12 @@ class Parser
             this->tokens = lexTokens; 
             this->delimiter = del;
 
-            this->currentToken = tokens[currentIndex]; 
-            this->currentTokenType = currentToken.type;
+            // Records size of the Token vector
+            this->size = tokens.size();
+
+            // Stores address of the current Token and its type
+            this->currentToken = &tokens[currentIndex]; 
+            this->currentTokenType = currentToken->type;
         }
 
         // Validates the tokens
@@ -29,9 +33,10 @@ class Parser
         int programNumber;
         vector<Token> tokens;
         string delimiter;
+        int size;
 
         // Current token, its type, and index in the tokens vector
-        Token currentToken;
+        Token* currentToken = nullptr;
         string currentTokenType;
         int currentIndex = 0;
 
@@ -68,16 +73,26 @@ class Parser
 
         void match(string expectedTokenType)
         {
-            if (currentToken.type == expectedTokenType)
+            if (currentToken->type == expectedTokenType)
             {
                 // CONSUME
                 currentIndex++;
-                currentToken = tokens[currentIndex];
-                currentTokenType = currentToken.type;
+
+                // Check if index is at the end of the Tokens
+                if (currentIndex < size)
+                {
+                    currentToken = &tokens[currentIndex];
+                    currentTokenType = currentToken->type;
+                }
+                else
+                {
+                    currentToken = nullptr;
+                    currentTokenType = "";
+                }
             }
             else
             { 
-                string errMessage = "EXPECTED [" + expectedTokenType + "] BUT FOUND [" + currentToken.type + "] with value '" + currentToken.lexeme + "' at (" + to_string(currentToken.line) + ":" + to_string(currentToken.column) + ")"; 
+                const string errMessage = "EXPECTED [" + expectedTokenType + "] BUT FOUND [" + currentTokenType + "] with value '" + currentToken->lexeme + "' at (" + to_string(currentToken->line) + ":" + to_string(currentToken->column) + ")"; 
                 log("ERROR", errMessage);
             }
         }
@@ -158,12 +173,12 @@ class Parser
 
         void parseVarDecl()
         {
-            if (currentToken.type == "I_VARTYPE")
+            if (currentTokenType == "I_VARTYPE")
             {
                 match("I_VARTYPE");
                 parseId();
             }
-            else if (currentToken.type == "S_VARTYPE")
+            else if (currentTokenType == "S_VARTYPE")
             {
                 match("S_VARTYPE");
                 parseId();
@@ -214,7 +229,7 @@ class Parser
         void parseIntExpr()
         {
             match("DIGIT");
-            if (currentToken.type == "ADDITION_OP")
+            if (currentTokenType == "ADDITION_OP")
             {
                 match("ADDITION_OP");
                 parseExpr();
@@ -230,11 +245,11 @@ class Parser
 
         void parseBooleanExpr()
         {
-            if (currentToken.type == "OPEN_PARENTHESIS")
+            if (currentTokenType == "OPEN_PARENTHESIS")
             {
                 match("OPEN_PARENTHESIS");
                 parseExpr();
-                if (currentToken.type == "EQUALITY_OP")
+                if (currentTokenType == "EQUALITY_OP")
                 {
                     match("EQUALITY_OP");
                 }
@@ -259,6 +274,7 @@ class Parser
             {
                 match("CHAR");
             }
+            // Will give error if type isn't an ID
             else
             {
                 match("ID");
@@ -267,12 +283,12 @@ class Parser
 
         void parseCharList()
         {
-            if (currentToken.type == "CHAR")
+            if (currentTokenType == "CHAR")
             {
                 match("CHAR");
                 parseCharList();
             }
-            else if (currentToken.type == "SPACE")
+            else if (currentTokenType == "SPACE")
             {
                 match("SPACE");
                 parseCharList();
