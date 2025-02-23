@@ -18,7 +18,7 @@ class Token
         {
             this->type = newType;
             this->lexeme = newLexeme;
-            this->line = line;
+            this->line = newLine;
             this->column = newColumn;
         }
 
