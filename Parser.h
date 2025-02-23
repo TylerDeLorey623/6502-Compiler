@@ -31,6 +31,12 @@ class Parser
             log("INFO", "Parse completed with " + to_string(errorCount) + " error(s) and " + to_string(warningCount) + " warning(s)");
         }
 
+        // Returns error count to see whether or not to continue with the CST
+        int getErrors()
+        {
+            return errorCount;
+        }
+
     private:
         // Default members
         int programNumber;

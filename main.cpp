@@ -50,12 +50,13 @@ int main(int argc, char* argv[])
     for (int i = 0, size = programs.size(); i < size; i++)
     {
         cout << endl;
+        int errors = 0;
         
         // LEXER
         Lexer currentLex = Lexer(i + 1, programs[i], delimiter);
         auto lexResult = currentLex.tokenize();
         vector<Token> tokens = lexResult.first;
-        int errors = lexResult.second;
+        errors = lexResult.second;
 
         cout << endl;
 
@@ -68,6 +69,16 @@ int main(int argc, char* argv[])
 
         Parser currentParse = Parser(i + 1, tokens, delimiter);
         currentParse.parse();
+        errors = currentParse.getErrors();
+
+        cout << endl;
+
+        // CST
+        if (errors > 0)
+        {
+            log("INFO", "CST for Program #" + to_string(i + 1) + " skipped due to Parse error(s)");
+            continue;
+        }
 
         // SEMANATIC ANALYSIS
         // CODE GEN
