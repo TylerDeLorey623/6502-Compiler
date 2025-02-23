@@ -19,7 +19,7 @@ class Parser
 
             // Stores address of the current Token and its type
             this->currentToken = &tokens[currentIndex]; 
-            this->currentTokenType = currentToken->type;
+            this->currentTokenType = currentToken->getType();
         }
 
         // Validates the tokens
@@ -76,7 +76,7 @@ class Parser
 
         void match(string expectedTokenType)
         {
-            if (currentToken->type == expectedTokenType)
+            if (currentToken->getType() == expectedTokenType)
             {
                 // CONSUME
                 currentIndex++;
@@ -85,7 +85,7 @@ class Parser
                 if (currentIndex < size)
                 {
                     currentToken = &tokens[currentIndex];
-                    currentTokenType = currentToken->type;
+                    currentTokenType = currentToken->getType();
                 }
                 else
                 {
@@ -95,7 +95,7 @@ class Parser
             }
             else
             {  
-                log("ERROR", "EXPECTED [" + expectedTokenType + "] BUT FOUND [" + currentTokenType + "] with value '" + currentToken->lexeme + "' at (" + to_string(currentToken->line) + ":" + to_string(currentToken->column) + ")");
+                log("ERROR", "EXPECTED [" + expectedTokenType + "] BUT FOUND [" + currentTokenType + "] with value '" + currentToken->getLexeme() + "' at (" + to_string(currentToken->getLine()) + ":" + to_string(currentToken->getColumn()) + ")");
                 errorCount++;
             }
         }

@@ -8,11 +8,6 @@ using namespace std;
 class Token
 {
     public:
-        string type;
-        string lexeme;
-        int line;
-        int column;
-
         // Parameterized Constructor
         Token(string newType, string newLexeme, int newLine, int newColumn)
         {
@@ -31,6 +26,33 @@ class Token
             this->column = 0;
         }
 
+        // Getters
+        string getType()
+        {
+            return this->type;
+        }
+
+        string getLexeme()
+        {
+            return this->lexeme;
+        }
+
+        int getLine()
+        {
+            return this->line;
+        }
+
+        int getColumn()
+        {
+            return this->column;
+        }
+
+    private:
+        // Members of Token Class
+        string type;
+        string lexeme;
+        int line;
+        int column;
 };
 
 #endif
