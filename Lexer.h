@@ -233,6 +233,9 @@ class Lexer
             {
                 log("WARNING", "The final program didn't end with a '$', should be", LINE, COLUMN);
                 warningCount++;
+                
+                // Creates EOP Token for Compiler
+                tokens.emplace_back(Token("EOP", "$", LINE, COLUMN));
             }
             
             // Print ending INFO for this program
