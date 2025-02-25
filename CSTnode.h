@@ -28,7 +28,12 @@ class CSTnode
             this->parent = newParent;
         }
 
-        // Getter for parent member and children vector
+        // Getters for name, parent, and children vector members
+        string getName()
+        {
+            return this->name;
+        }
+
         CSTnode* getParent()
         {
             return this->parent;
@@ -37,6 +42,12 @@ class CSTnode
         vector<CSTnode*> getChildren()
         {
             return this->children;
+        }
+
+        // Returns a child at specific index for CST generation
+        CSTnode* getChild(int index)
+        {
+            return this->children[index];
         }
 
         // Adds a child to the children vector
