@@ -51,6 +51,12 @@ class CST
             }
         }
 
+        // Getter for the root Node
+        CSTnode* getRoot()
+        {
+            return this->root;
+        }
+
     private:
         CSTnode* root;
         CSTnode* current;

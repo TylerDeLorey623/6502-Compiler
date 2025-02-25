@@ -28,10 +28,15 @@ class CSTnode
             this->parent = newParent;
         }
 
-        // Getter for parent member
+        // Getter for parent member and children vector
         CSTnode* getParent()
         {
             return this->parent;
+        }
+
+        vector<CSTnode*> getChildren()
+        {
+            return this->children;
         }
 
         // Adds a child to the children vector
