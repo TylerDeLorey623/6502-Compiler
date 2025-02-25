@@ -77,8 +77,13 @@ int main(int argc, char* argv[])
         if (errors > 0)
         {
             log("INFO", "CST for Program #" + to_string(i + 1) + " skipped due to Parse error(s)");
+            currentParse.deleteCST();
             continue;
         }
+        
+        log("INFO", "CST for Program #" + to_string(i + 1));
+        currentParse.generateCST();
+        currentParse.deleteCST();
 
         // SEMANATIC ANALYSIS
         // CODE GEN
