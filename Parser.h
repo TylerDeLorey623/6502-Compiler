@@ -1,6 +1,8 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include "CST.h"
+
 using namespace std;
 
 // The Parser Class
@@ -13,6 +15,9 @@ class Parser
             this->programNumber = progNum;
             this->tokens = lexTokens; 
             this->delimiter = del;
+            
+            // Creates a pointer for the CST
+            myCST = new CST();
 
             // Records size of the Token vector
             this->size = tokens.size();
@@ -31,6 +36,12 @@ class Parser
             log("INFO", "Parse completed with " + to_string(errorCount) + " error(s) and " + to_string(warningCount) + " warning(s)");
         }
 
+        // Deletes CST from Memory so there are no memory leaks
+        void deleteCST()
+        {
+            delete(myCST);
+        }
+
         // Returns error count to see whether or not to continue with the CST
         int getErrors()
         {
@@ -43,6 +54,9 @@ class Parser
         vector<Token> tokens;
         string delimiter;
         int size;
+
+        // CST Member
+        CST* myCST;
 
         // Current token, its type, and index in the tokens vector
         Token* currentToken = nullptr;
@@ -80,11 +94,14 @@ class Parser
             }
         }
 
+        // Matches the current terminal to the current token
         void match(string expectedTokenType)
         {
             if (currentTokenType == expectedTokenType)
             {
                 // CONSUME
+                myCST->addNode("leaf", currentTokenType);
+
                 currentIndex++;
 
                 // Check if index is at the end of the Tokens
@@ -106,24 +123,30 @@ class Parser
             }
         }
 
+        // THE FOLLOWING FUNCTIONS ARE FOR PARSING EACH NONTERMINAL IN THE ENTIRE GRAMMAR
         void parseProgram()
         {
             log("DEBUG", "Parsing Program...");
+            myCST->addNode("root", "Program");
             parseBlock();
             match("EOP");
+            myCST->moveUp();
         }
 
         void parseBlock()
         {
             log("DEBUG", "Parsing Block...");
+            myCST->addNode("branch", "Block");
             match("OPEN_CURLY");
             parseStatementList();
             match("CLOSE_CURLY");
+            myCST->moveUp();
         }
 
         void parseStatementList()
         {
             log("DEBUG", "Parsing Statement List...");
+            myCST->addNode("branch", "Statement List");
             if (currentTokenType == "PRINT_STATEMENT" || currentTokenType == "ID" || 
                 currentTokenType == "I_VARTYPE" || currentTokenType == "S_VARTYPE" || currentTokenType == "B_VARTYPE" ||
                 currentTokenType == "WHILE_STATEMENT" || currentTokenType == "IF_STATEMENT" || currentTokenType == "OPEN_CURLY")
@@ -137,11 +160,13 @@ class Parser
                 // its an ε
                 // production
             }
+            myCST->moveUp();
         }
 
         void parseStatement()
         {
             log("DEBUG", "Parsing Statement...");
+            myCST->addNode("branch", "Statement");
             if (currentTokenType == "PRINT_STATEMENT")
             {
                 parsePrintStatement();
@@ -167,28 +192,34 @@ class Parser
             {
                 parseBlock();
             }
+            myCST->moveUp();
         }
 
         void parsePrintStatement()
         {
             log("DEBUG", "Parsing Print Statement...");
+            myCST->addNode("branch", "Print Statement");
             match("PRINT_STATEMENT");
             match("OPEN_PARENTHESIS");
             parseExpr();
             match("CLOSE_PARENTHESIS");
+            myCST->moveUp();
         }
 
         void parseAssignmentStatement()
         {
             log("DEBUG", "Parsing Assignment Statement...");
+            myCST->addNode("branch", "Assignment Statement");
             parseId();
             match("ASSIGNMENT_OP");
             parseExpr();
+            myCST->moveUp();
         }
 
         void parseVarDecl()
         {
             log("DEBUG", "Parsing Var Decl...");
+            myCST->addNode("branch", "Var Decl");
             if (currentTokenType == "I_VARTYPE")
             {
                 match("I_VARTYPE");
@@ -205,27 +236,33 @@ class Parser
                 match("B_VARTYPE");
                 parseId();
             }
+            myCST->moveUp();
         }
 
         void parseWhileStatement()
         {
             log("DEBUG", "Parsing While Statement...");
+            myCST->addNode("branch", "While Statement");
             match("WHILE_STATEMENT");
             parseBooleanExpr();
             parseBlock();
+            myCST->moveUp();
         }
 
         void parseIfStatement()
         {
             log("DEBUG", "Parsing If Statement...");
+            myCST->addNode("branch", "If Statement");
             match("IF_STATEMENT");
             parseBooleanExpr();
             parseBlock();
+            myCST->moveUp();
         }
 
         void parseExpr()
         {
             log("DEBUG", "Parsing Expr...");
+            myCST->addNode("branch", "Expr");
             if (currentTokenType == "DIGIT")
             {
                 parseIntExpr();
@@ -243,30 +280,36 @@ class Parser
             {
                 parseId();
             }
+            myCST->moveUp();
         }
 
         void parseIntExpr()
         {
             log("DEBUG", "Parsing Int Expr...");
+            myCST->addNode("branch", "Int Expr");
             match("DIGIT");
             if (currentTokenType == "ADDITION_OP")
             {
                 match("ADDITION_OP");
                 parseExpr();
             }
+            myCST->moveUp();
         }
 
         void parseStringExpr()
         {
             log("DEBUG", "Parsing String Expr...");
+            myCST->addNode("branch", "String Expr");
             match("QUOTE");
             parseCharList();
             match("QUOTE");
+            myCST->moveUp();
         }
 
         void parseBooleanExpr()
         {
             log("DEBUG", "Parsing Boolean Expr...");
+            myCST->addNode("branch", "Boolean Expr");
             if (currentTokenType == "OPEN_PARENTHESIS")
             {
                 match("OPEN_PARENTHESIS");
@@ -288,11 +331,13 @@ class Parser
             {
                 match("BOOL_VAL");
             }
+            myCST->moveUp();
         }
 
         void parseId()
         {
             log("DEBUG", "Parsing Id...");
+            myCST->addNode("branch", "Id");
             // Extra logic for difference between CHAR and ID
             if (currentTokenType == "CHAR")
             {
@@ -303,11 +348,13 @@ class Parser
             {
                 match("ID");
             }
+            myCST->moveUp();
         }
 
         void parseCharList()
         {
             log("DEBUG", "Parsing Char List...");
+            myCST->addNode("branch", "Char List");
             if (currentTokenType == "CHAR")
             {
                 match("CHAR");
@@ -324,6 +371,7 @@ class Parser
                 // its an ε
                 // production
             }
+            myCST->moveUp();
         }
 };
 
