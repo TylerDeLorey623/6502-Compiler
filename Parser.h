@@ -39,6 +39,7 @@ class Parser
         // Deletes CST from Memory so there are no memory leaks
         void deleteCST()
         {
+            deleteNode(myCST->getRoot());
             delete(myCST);
         }
 
@@ -65,6 +66,17 @@ class Parser
 
         int errorCount = 0;
         int warningCount = 0;
+
+        // Deletes CST from Memory by deleting its Nodes recursively
+        void deleteNode(CSTnode* curNode)
+        {
+            vector<CSTnode*> nodeChildren = curNode->getChildren(); 
+            for (int i = 0, n = nodeChildren.size(); i < n; i++)
+            {
+                deleteNode(nodeChildren[i]);
+            }
+            delete(curNode);
+        }
 
         // Logging function for Parser
         void log(const string type, const string message)
