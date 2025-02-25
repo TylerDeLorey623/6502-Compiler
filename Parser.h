@@ -36,6 +36,13 @@ class Parser
             log("INFO", "Parse completed with " + to_string(errorCount) + " error(s) and " + to_string(warningCount) + " warning(s)");
         }
 
+        // Prints the CST
+        void generateCST()
+        {
+            // Initialize the result string
+            traversalResult = "";
+        }
+
         // Deletes CST from Memory so there are no memory leaks
         void deleteCST()
         {
@@ -56,8 +63,9 @@ class Parser
         string delimiter;
         int size;
 
-        // CST Member
+        // CST Members
         CST* myCST;
+        string traversalResult;
 
         // Current token, its type, and index in the tokens vector
         Token* currentToken = nullptr;
@@ -111,8 +119,9 @@ class Parser
         {
             if (currentTokenType == expectedTokenType)
             {
-                // CONSUME
+                // Adds the leaf node and links the token to this Node
                 myCST->addNode("leaf", currentTokenType);
+                myCST->getMostRecentNode()->linkToken(currentToken);
 
                 currentIndex++;
 

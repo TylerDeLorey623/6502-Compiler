@@ -8,10 +8,12 @@ using namespace std;
 class CST
 {
     public:
+        // Default constructor for CST
         CST()
         {
             this->root = nullptr;
             this->current = nullptr;
+            this->mostRecentNode = nullptr;
         }
 
         // Adds a Node to the CST
@@ -20,6 +22,8 @@ class CST
             // Creates a new Node and sets its name to the label
             CSTnode* newNode = new CSTnode();
             newNode->setName(label);
+
+            mostRecentNode = newNode;
 
             // If there is no root Node, this Node becomes the root (and its parent is null)
             if (this->root == nullptr)
@@ -51,15 +55,23 @@ class CST
             }
         }
 
-        // Getter for the root Node
+        // Getter for the root Node and most recent Node
         CSTnode* getRoot()
         {
             return this->root;
         }
 
+        CSTnode* getMostRecentNode()
+        {
+            return this->mostRecentNode;
+        }
+
     private:
         CSTnode* root;
         CSTnode* current;
+
+        // Pointer for the most recent Node (used for linking tokens to leaf nodes)
+        CSTnode* mostRecentNode;
 };
 
 #endif
