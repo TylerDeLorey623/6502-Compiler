@@ -156,7 +156,7 @@ class Parser
             if (currentTokenType == expectedTokenType)
             {
                 // Adds the leaf node and links the token to this Node
-                myCST->addNode("leaf", currentTokenType);
+                myCST->addNode("leaf", currentToken->getLexeme());
                 myCST->getMostRecentNode()->linkToken(currentToken);
 
                 currentIndex++;
