@@ -41,6 +41,12 @@ class Parser
         {
             // Initialize the result string
             traversalResult = "";
+
+            // Make initial call to expand from root
+            expand(myCST->getRoot(), 0);
+
+            // Print results
+            cout << traversalResult << endl;
         }
 
         // Deletes CST from Memory so there are no memory leaks
@@ -84,6 +90,36 @@ class Parser
                 deleteNode(nodeChildren[i]);
             }
             delete(curNode);
+        }
+
+        // This expand() function references code by Alan G. Labouseur, based on the 2009 work by Michael Ardizzone and Tim Smith.
+        // Recursive function to handle the expansion of the nodes
+        void expand(CSTnode* curNode, int depth)
+        {
+            // Space out based on the current depth so
+            // this looks at least a little tree-like.
+            for (int i = 0; i < depth; i++)
+            {
+                traversalResult += "-";
+            }
+
+            // If there are no children (i.e., leaf nodes)...
+            if (curNode->getChildren().empty())
+            {
+                // note the leaf node
+                traversalResult += "[" + curNode->getName() + "] \n";
+            }
+            else
+            {
+                // There are children, so note these branch nodes
+                traversalResult += "<" + curNode->getName() + "> \n";
+
+                // Recursively expand the branches
+                for (int i = 0, childrenSize = curNode->getChildren().size(); i < childrenSize; i++)
+                {
+                    expand(curNode->getChild(i), depth + 1);
+                }
+            }
         }
 
         // Logging function for Parser
