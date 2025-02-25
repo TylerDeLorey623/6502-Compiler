@@ -1,8 +1,6 @@
 #ifndef CSTNODE_H
 #define CSTNODE_H
 
-#include <iostream>
-#include <vector>
 #include "Token.h"
 
 using namespace std;
@@ -48,6 +46,12 @@ class CSTnode
         CSTnode* getChild(int index)
         {
             return this->children[index];
+        }
+
+        // Returns whether or not the Node is linked to a token
+        bool isTokenLinked()
+        {
+            return this->tokenPointer != nullptr;
         }
 
         // Adds a child to the children vector

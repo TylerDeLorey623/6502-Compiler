@@ -92,7 +92,7 @@ class Parser
             delete(curNode);
         }
 
-        // This expand() function references code by Alan G. Labouseur, based on the 2009 work by Michael Ardizzone and Tim Smith.
+        // Most of the expand() function references code by Alan G. Labouseur, based on the 2009 work by Michael Ardizzone and Tim Smith.
         // Recursive function to handle the expansion of the nodes
         void expand(CSTnode* curNode, int depth)
         {
@@ -103,15 +103,15 @@ class Parser
                 traversalResult += "-";
             }
 
-            // If there are no children (i.e., leaf nodes)...
-            if (curNode->getChildren().empty())
+            // If it was linked to a token, that means its a leaf node
+            if (curNode->isTokenLinked())
             {
                 // note the leaf node
                 traversalResult += "[" + curNode->getName() + "] \n";
             }
             else
             {
-                // There are children, so note these branch nodes
+                // If not, note the branch node, and expand on its children
                 traversalResult += "<" + curNode->getName() + "> \n";
 
                 // Recursively expand the branches
