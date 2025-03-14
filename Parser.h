@@ -10,7 +10,7 @@ class Parser
 {
     public:
         // Default constructor for the Parser class
-        Parser(const int progNum, const vector<Token> lexTokens, const char del)
+        Parser(const int progNum, const vector<Token>& lexTokens, const char del)
         {
             this->programNumber = progNum;
             this->tokens = lexTokens; 
@@ -54,6 +54,7 @@ class Parser
         {
             deleteNode(myCST->getRoot());
             delete(myCST);
+            myCST = nullptr;
         }
 
         // Returns error count to see whether or not to continue with the CST
@@ -150,7 +151,7 @@ class Parser
             }
         }
 
-        // Matches the current terminal to the current token
+        // Matches the expected token to find to the current token
         void match(string expectedTokenType)
         {
             if (currentTokenType == expectedTokenType)
@@ -160,6 +161,9 @@ class Parser
                 myCST->getMostRecentNode()->linkToken(currentToken);
 
                 currentIndex++;
+
+                // Prints debug message
+                log("DEBUG", "Added " + currentTokenType + " node.");
 
                 // Check if index is at the end of the Tokens
                 if (currentIndex < size)
