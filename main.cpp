@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
         cout << endl;
 
         // PARSER
-        if (errors > 0)
+        if (errors > 0 || tokens.size() == 0)
         {
             log("INFO", "Parsing for Program #" + to_string(i + 1) + " skipped due to Lex error(s)");
             continue;
