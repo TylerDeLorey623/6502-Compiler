@@ -184,7 +184,7 @@ class Parser
             }
         }
 
-        // THE FOLLOWING FUNCTIONS ARE FOR PARSING EACH NONTERMINAL IN THE ENTIRE GRAMMAR
+        // THE FOLLOWING FUNCTIONS ARE FOR THE RECURSIVE DECENT PARSER
         void parseProgram()
         {
             log("DEBUG", "Parsing Program...");
@@ -206,14 +206,18 @@ class Parser
 
         void parseStatementList()
         {
-            log("DEBUG", "Parsing Statement List...");
-            myCST->addNode("branch", "Statement List");
             if (currentTokenType == "PRINT_STATEMENT" || currentTokenType == "ID" || 
                 currentTokenType == "I_VARTYPE" || currentTokenType == "S_VARTYPE" || currentTokenType == "B_VARTYPE" ||
                 currentTokenType == "WHILE_STATEMENT" || currentTokenType == "IF_STATEMENT" || currentTokenType == "OPEN_CURLY")
             {
+                // Only adds the nodes to the CST if token is non-empty
+                log("DEBUG", "Parsing Statement List...");
+                myCST->addNode("branch", "Statement List");
+
                 parseStatement();
                 parseStatementList();
+
+                myCST->moveUp();
             }
             else
             {
@@ -221,7 +225,6 @@ class Parser
                 // its an ε
                 // production
             }
-            myCST->moveUp();
         }
 
         void parseStatement()
@@ -414,17 +417,15 @@ class Parser
 
         void parseCharList()
         {
-            log("DEBUG", "Parsing Char List...");
-            myCST->addNode("branch", "Char List");
-            if (currentTokenType == "CHAR")
+            if (currentTokenType == "CHAR" || currentTokenType == "SPACE")
             {
-                match("CHAR");
+                // Only adds the nodes to the CST if token is non-empty
+                log("DEBUG", "Parsing Char List...");
+                myCST->addNode("branch", "Char List");
+
+                match(currentTokenType);
                 parseCharList();
-            }
-            else if (currentTokenType == "SPACE")
-            {
-                match("SPACE");
-                parseCharList();
+                myCST->moveUp();
             }
             else
             {
@@ -432,7 +433,6 @@ class Parser
                 // its an ε
                 // production
             }
-            myCST->moveUp();
         }
 };
 
