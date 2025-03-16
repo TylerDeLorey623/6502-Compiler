@@ -31,7 +31,6 @@ class Parser
         void parse()
         {
             log("INFO", "Parsing Program #" + to_string(programNumber));
-            log("DEBUG", "parse()");
             parseProgram();
             log("INFO", "Parse completed with " + to_string(errorCount) + " error(s) and " + to_string(warningCount) + " warning(s)");
         }
@@ -81,6 +80,10 @@ class Parser
 
         int errorCount = 0;
         int warningCount = 0;
+
+        // For better CST print formatting, removes unneccessary branches that leads to empty tokens  
+        bool firstCallStatement = false;
+        bool firstCallChar = false;
 
         // Deletes CST from Memory by deleting its Nodes recursively
         void deleteNode(CSTnode* curNode)
@@ -199,24 +202,36 @@ class Parser
             log("DEBUG", "Parsing Block...");
             myCST->addNode("branch", "Block");
             match("OPEN_CURLY");
+
+            firstCallStatement = true;
             parseStatementList();
+
+
             match("CLOSE_CURLY");
             myCST->moveUp();
         }
 
         void parseStatementList()
         {
+            log("DEBUG", "Parsing Statement List...");
+
+            // All possible token types in <statement>
             if (currentTokenType == "PRINT_STATEMENT" || currentTokenType == "ID" || 
                 currentTokenType == "I_VARTYPE" || currentTokenType == "S_VARTYPE" || currentTokenType == "B_VARTYPE" ||
                 currentTokenType == "WHILE_STATEMENT" || currentTokenType == "IF_STATEMENT" || currentTokenType == "OPEN_CURLY")
             {
-                // Only adds the nodes to the CST if token is non-empty
-                log("DEBUG", "Parsing Statement List...");
                 myCST->addNode("branch", "Statement List");
-
+                firstCallStatement = false;
                 parseStatement();
                 parseStatementList();
-
+                myCST->moveUp();
+            }
+            // Empty branch is only added after initial call to parseStatementList from parseBlock()
+            // also an ε regarding parsing and CST 
+            else if (firstCallStatement)
+            {
+                myCST->addNode("branch", "Statement List");
+                firstCallStatement = false;
                 myCST->moveUp();
             }
             else
@@ -365,7 +380,10 @@ class Parser
             log("DEBUG", "Parsing String Expr...");
             myCST->addNode("branch", "String Expr");
             match("QUOTE");
+
+            firstCallChar = true;
             parseCharList();
+
             match("QUOTE");
             myCST->moveUp();
         }
@@ -417,14 +435,22 @@ class Parser
 
         void parseCharList()
         {
+            log("DEBUG", "Parsing Char List...");
+
             if (currentTokenType == "CHAR" || currentTokenType == "SPACE")
             {
-                // Only adds the nodes to the CST if token is non-empty
-                log("DEBUG", "Parsing Char List...");
                 myCST->addNode("branch", "Char List");
-
+                firstCallChar = false;
                 match(currentTokenType);
                 parseCharList();
+                myCST->moveUp();
+            }
+            // Empty branch is only added after initial call to parseCharList from parseStringExpr()
+            // also an ε regarding parsing and CST 
+            else if (firstCallChar)
+            {
+                myCST->addNode("branch", "Char List");
+                firstCallChar = false;
                 myCST->moveUp();
             }
             else
