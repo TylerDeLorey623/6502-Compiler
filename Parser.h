@@ -396,14 +396,14 @@ class Parser
             {
                 match("OPEN_PARENTHESIS");
                 parseExpr();
-                if (currentTokenType == "EQUALITY_OP")
+                if (currentTokenType == "INEQUALITY_OP")
                 {
-                    match("EQUALITY_OP");
+                    match("INEQUALITY_OP");
                 }
                 // Will give error if type isn't an inequality operator
                 else
                 {
-                    match("INEQUALITY_OP");
+                    match("EQUALITY_OP");
                 }
                 parseExpr();
                 match("CLOSE_PARENTHESIS");
