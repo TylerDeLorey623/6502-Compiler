@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
         }
         
         log("INFO", "CST for Program #" + to_string(i + 1));
-        currentParse.generateCST();
+        currentParse.printCST();
         currentParse.deleteCST();
 
         // SEMANATIC ANALYSIS

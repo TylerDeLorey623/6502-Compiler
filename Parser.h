@@ -36,7 +36,7 @@ class Parser
         }
 
         // Prints the CST
-        void generateCST()
+        void printCST()
         {
             // Initialize the result string
             traversalResult = "";
