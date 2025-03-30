@@ -9,6 +9,7 @@
 
 #include "Lexer.h"
 #include "Parser.h"
+#include "SemanticAnalyzer.h"
 
 using namespace std;
 
@@ -86,6 +87,9 @@ int main(int argc, char* argv[])
         currentParse.deleteCST();
 
         // SEMANATIC ANALYSIS
+        SemanticAnalyzer currentAnalyzer = SemanticAnalyzer(i + 1, tokens);
+        currentAnalyzer.generateAST();
+
         // CODE GEN
     }
 }
