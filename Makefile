@@ -2,7 +2,7 @@
 CXX = g++
 
 # Compiler flags
-CXXFLAGS = -Wall -g -Wno-c++11-extensions
+CXXFLAGS = -std=c++17
 
 # Target executable
 TARGET = main
