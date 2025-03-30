@@ -1,15 +1,15 @@
-#ifndef CSTNODE_H
-#define CSTNODE_H
+#ifndef NODE_H
+#define NODE_H
 
 #include "Token.h"
 
 using namespace std;
 
-class CSTnode
+class Node
 {
     public:
-        // Constructor for CSTnode Class
-        CSTnode()
+        // Constructor for Node Class
+        Node()
         {
             this->name = "UNKNOWN";
             this->parent = nullptr;
@@ -21,7 +21,7 @@ class CSTnode
             this->name = newName; 
         }
 
-        void setParent(CSTnode* newParent)
+        void setParent(Node* newParent)
         {
             this->parent = newParent;
         }
@@ -32,18 +32,18 @@ class CSTnode
             return this->name;
         }
 
-        CSTnode* getParent()
+        Node* getParent()
         {
             return this->parent;
         }
 
-        vector<CSTnode*> getChildren()
+        vector<Node*> getChildren()
         {
             return this->children;
         }
 
-        // Returns a child at specific index for CST generation
-        CSTnode* getChild(int index)
+        // Returns a child at specific index for Tree generation
+        Node* getChild(int index)
         {
             return this->children[index];
         }
@@ -55,7 +55,7 @@ class CSTnode
         }
 
         // Adds a child to the children vector
-        void addChild(CSTnode* childNode)
+        void addChild(Node* childNode)
         {
             this->children.emplace_back(childNode);
         }
@@ -69,8 +69,8 @@ class CSTnode
     private:
         // Members
         string name;
-        CSTnode* parent;
-        vector<CSTnode*> children;
+        Node* parent;
+        vector<Node*> children;
 
         // Optional member used for leaf nodes
         Token* tokenPointer = nullptr;

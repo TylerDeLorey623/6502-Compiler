@@ -15,8 +15,8 @@ HEADERS = Verbose.h \
 		  Token.h \
 		  Lexer.h \
 		  Parser.h \
-		  CST.h \
-		  CSTnode.h
+		  Tree.h \
+		  Node.h
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)

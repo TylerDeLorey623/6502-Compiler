@@ -1,26 +1,26 @@
-#ifndef CST_H
-#define CST_H
+#ifndef TREE_H
+#define TREE_H
 
-#include "CSTnode.h"
+#include "Node.h"
 
 using namespace std;
 
-class CST
+class Tree
 {
     public:
-        // Default constructor for CST
-        CST()
+        // Default constructor for Tree (CST/AST)
+        Tree()
         {
             this->root = nullptr;
             this->current = nullptr;
             this->mostRecentNode = nullptr;
         }
 
-        // Adds a Node to the CST
+        // Adds a Node to the Tree
         void addNode(string kind, string label)
         {
             // Creates a new Node and sets its name to the label
-            CSTnode* newNode = new CSTnode();
+            Node* newNode = new Node();
             newNode->setName(label);
 
             mostRecentNode = newNode;
@@ -39,7 +39,7 @@ class CST
                 current->addChild(newNode);
             }
 
-            // Sets the current Node of the CST to this new Node if it's not a leaf node
+            // Sets the current Node of the Tree to this new Node if it's not a leaf node
             if (kind != "leaf")
             {
                 this->current = newNode;
@@ -56,22 +56,22 @@ class CST
         }
 
         // Getter for the root Node and most recent Node
-        CSTnode* getRoot()
+        Node* getRoot()
         {
             return this->root;
         }
 
-        CSTnode* getMostRecentNode()
+        Node* getMostRecentNode()
         {
             return this->mostRecentNode;
         }
 
     private:
-        CSTnode* root;
-        CSTnode* current;
+        Node* root;
+        Node* current;
 
         // Pointer for the most recent Node (used for linking tokens to leaf nodes)
-        CSTnode* mostRecentNode;
+        Node* mostRecentNode;
 };
 
 #endif

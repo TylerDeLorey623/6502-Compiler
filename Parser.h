@@ -1,7 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "CST.h"
+#include "Tree.h"
 
 using namespace std;
 
@@ -17,7 +17,7 @@ class Parser
             this->delimiter = del;
             
             // Creates a pointer for the CST
-            myCST = new CST();
+            myCST = new Tree();
 
             // Records size of the Token vector
             this->size = tokens.size();
@@ -70,7 +70,7 @@ class Parser
         int size;
 
         // CST Members
-        CST* myCST;
+        Tree* myCST;
         string traversalResult;
 
         // Current token, its type, and index in the tokens vector
@@ -86,9 +86,9 @@ class Parser
         bool firstCallChar = false;
 
         // Deletes CST from Memory by deleting its Nodes recursively
-        void deleteNode(CSTnode* curNode)
+        void deleteNode(Node* curNode)
         {
-            vector<CSTnode*> nodeChildren = curNode->getChildren(); 
+            vector<Node*> nodeChildren = curNode->getChildren(); 
             for (int i = 0, n = nodeChildren.size(); i < n; i++)
             {
                 deleteNode(nodeChildren[i]);
@@ -98,7 +98,7 @@ class Parser
 
         // Most of the expand() function references code by Alan G. Labouseur, based on the 2009 work by Michael Ardizzone and Tim Smith.
         // Recursive function to handle the expansion of the nodes
-        void expand(CSTnode* curNode, int depth)
+        void expand(Node* curNode, int depth)
         {
             // Space out based on the current depth so
             // this looks at least a little tree-like.
