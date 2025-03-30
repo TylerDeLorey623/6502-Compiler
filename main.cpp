@@ -6,6 +6,7 @@
 
 #include "Verbose.h"
 #include "Token.h"
+#include "Tree.h"
 
 #include "Lexer.h"
 #include "Parser.h"
@@ -81,16 +82,23 @@ int main(int argc, char* argv[])
             currentParse.deleteCST();
             continue;
         }
+
+        Tree* currentCST = currentParse.getCST();
         
-        log("INFO", "CST for Program #" + to_string(i + 1));
-        currentParse.printCST();
-        currentParse.deleteCST();
+        if (VERBOSE)
+        {
+            log("INFO", "CST for Program #" + to_string(i + 1));
+            currentParse.printCST();
+        }
 
         // SEMANATIC ANALYSIS
-        SemanticAnalyzer currentAnalyzer = SemanticAnalyzer(i + 1, tokens);
+        SemanticAnalyzer currentAnalyzer = SemanticAnalyzer(i + 1, currentCST);
         currentAnalyzer.generateAST();
+        currentAnalyzer.deleteAST();
 
         // CODE GEN
+        currentParse.deleteCST();
+
     }
 }
 
