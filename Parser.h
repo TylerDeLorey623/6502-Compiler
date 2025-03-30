@@ -100,6 +100,9 @@ class Parser
         // Recursive function to handle the expansion of the nodes
         void expand(Node* curNode, int depth)
         {
+            // Beginning of each line
+            traversalResult += "INFO    CST: ";
+
             // Space out based on the current depth so
             // this looks at least a little tree-like.
             for (int i = 0; i < depth; i++)
