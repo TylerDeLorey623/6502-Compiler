@@ -61,9 +61,9 @@ class Parser
         }
 
         // Returns the CST to be used for generating the AST
-        Tree* getCST()
+        Tree getCST()
         {
-            return myCST;
+            return *myCST;
         }
 
     private:
