@@ -1,8 +1,6 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "Tree.h"
-
 using namespace std;
 
 // The Parser Class
@@ -60,6 +58,12 @@ class Parser
         int getErrors()
         {
             return errorCount;
+        }
+
+        // Returns the CST to be used for generating the AST
+        Tree* getCST()
+        {
+            return myCST;
         }
 
     private:
