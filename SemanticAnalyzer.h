@@ -56,6 +56,8 @@ class SemanticAnalyzer
         // AST Members
         Tree* myAST;
         string traversalResult;
+        bool inQuotes = false;
+        string currentString;
 
         int errorCount = 0;
         int warningCount = 0;
@@ -83,9 +85,35 @@ class SemanticAnalyzer
                 // Check if leaf is important
                 string lName = node->getName();
                 if (lName != "{" && lName != "}" && lName != "print" && lName != "while" && lName != "if" && lName != "(" && 
-                    lName != ")" && lName != "\"" && lName != "=" && lName != "$")
+                    lName != ")" && lName != "=" && lName != "$")
                 {
-                    myAST->addNode("leaf", node->getName());
+                    // Concatenate characters to make a string if looking at chars
+                    if (lName == "\"") 
+                    {
+                        // Toggle quote state
+                        inQuotes = !inQuotes;
+                        
+                        // If just got out of quotes, add the string to the Tree
+                        if (!inQuotes) 
+                        {
+                            myAST->addNode("leaf", currentString);
+                        } 
+                        // If just got into the quotes, clear the string that will be overwritten
+                        else 
+                        {
+                            currentString.clear();
+                        }
+                    }
+                    // If in quotes, add to the string, don't add a new Node 
+                    else if (inQuotes) 
+                    {
+                        currentString += node->getName();
+                    } 
+                    // Base case: Add the leaf node to the tree
+                    else 
+                    {
+                        myAST->addNode("leaf", node->getName());
+                    }
                 }
             }
             // If not linked, is a branch node, add if important
