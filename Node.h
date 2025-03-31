@@ -78,6 +78,12 @@ class Node
             this->tokenPointer = newToken;
         }
 
+        // Returns the token pointer
+        Token* getToken()
+        {
+            return this->tokenPointer;
+        }
+
     private:
         // Members
         string name;
