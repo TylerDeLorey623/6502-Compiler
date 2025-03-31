@@ -157,8 +157,8 @@ class SemanticAnalyzer
                 traversalResult += "-";
             }
 
-            // If it was linked to a token, that means its a leaf node
-            if (curNode->isTokenLinked())
+            // Check if current node is a leaf node
+            if (curNode->isLeaf())
             {
                 // note the leaf node
                 traversalResult += "[" + curNode->getName() + "] \n";

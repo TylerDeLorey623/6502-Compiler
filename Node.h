@@ -54,6 +54,18 @@ class Node
             return this->tokenPointer != nullptr;
         }
 
+        // Sets the Node to a leaf node
+        void setToLeaf()
+        {
+            this->isLeafNode = true;
+        }
+
+        // Returns whether or not node is a leaf node (used in AST)
+        bool isLeaf()
+        {
+            return this->isLeafNode;
+        }
+
         // Adds a child to the children vector
         void addChild(Node* childNode)
         {
@@ -71,6 +83,9 @@ class Node
         string name;
         Node* parent;
         vector<Node*> children;
+
+        // Used to tell if node is a leaf node
+        bool isLeafNode = false;
 
         // Optional member used for leaf nodes
         Token* tokenPointer = nullptr;

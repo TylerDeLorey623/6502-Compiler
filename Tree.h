@@ -44,6 +44,11 @@ class Tree
             {
                 this->current = newNode;
             }
+            // If it's a leaf node, note so
+            else
+            {
+                newNode->setToLeaf();
+            }
         }
 
         // Moves the current Node up the tree
