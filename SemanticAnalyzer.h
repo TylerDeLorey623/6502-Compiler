@@ -57,9 +57,6 @@ class SemanticAnalyzer
         Tree* myAST;
         string traversalResult;
 
-        // Current token and index in the tokens vector
-        Token* currentToken = nullptr;
-
         int errorCount = 0;
         int warningCount = 0;
 
@@ -80,20 +77,39 @@ class SemanticAnalyzer
         // In-order traversal of the CST to create the AST
         void inorder(Node *node)
         {
-            // If linked, is a leaf node, always add to AST
+            // If linked, is a leaf node, add if important
             if (node->isTokenLinked())
             {
-                log("LEAF", node->getName());
+                // Check if leaf is important
+                string lName = node->getName();
+                if (lName != "{" && lName != "}" && lName != "print" && lName != "while" && lName != "if" && lName != "(" && 
+                    lName != ")" && lName != "\"" && lName != "=" && lName != "$")
+                {
+                    myAST->addNode("leaf", node->getName());
+                }
             }
             // If not linked, is a branch node, add if important
             else
             {
-                log("BRANCH", node->getName());
+                // Check if branch is important
+                bool important = false;
+                string bName = node->getName();
+                if (bName == "Block" || bName == "Print Statement" || bName == "Assignment Statement" || bName == "Var Decl" ||
+                    bName == "While Statement" || bName == "If Statement")
+                {
+                    important = true;
+                    myAST->addNode("branch", node->getName());
+                }
 
                 // Recursively expand the branches
                 for (int i = 0, childrenSize = node->getChildren().size(); i < childrenSize; i++)
                 {
                     inorder(node->getChild(i));
+                }
+
+                if (important)
+                {
+                    myAST->moveUp();
                 }
             }
         }
@@ -132,13 +148,6 @@ class SemanticAnalyzer
             }
         }
 
-        // Matches the expected token to find to the current token
-        void match(string expectedTokenType)
-        {
-            // Adds the leaf node and links the token to this Node
-            myAST->addNode("leaf", currentToken->getLexeme());
-            myAST->getMostRecentNode()->linkToken(currentToken);
-        }
 
         // Logging function for Analyzer
         void log(const string type, const string message)
