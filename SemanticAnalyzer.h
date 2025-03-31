@@ -43,9 +43,12 @@ class SemanticAnalyzer
         void generateAST()
         {
             log("INFO", "AST for Program #" + to_string(programNumber));
-            inorder(programCST->getRoot());
+            inorder(programCST->getRoot(), 0);
 
-            return;
+            for (int i = 0; i < nodeNames.size(); i++)
+            {
+                cout << nodeNames[i] << endl;
+            }
         }
 
     private:
@@ -56,8 +59,13 @@ class SemanticAnalyzer
         // AST Members
         Tree* myAST;
         string traversalResult;
+
         bool inQuotes = false;
         string currentString;
+
+        bool collectNodes = false;
+        vector<string> nodeNames;
+        int oldDepth = 0;
 
         // For leaf nodes
         Token* currentToken;
@@ -81,7 +89,7 @@ class SemanticAnalyzer
         }
 
         // In-order traversal of the CST to create the AST
-        void inorder(Node *node)
+        void inorder(Node *node, int depth)
         {
             // If linked, is a leaf node, add if important
             if (node->isTokenLinked())
@@ -101,11 +109,16 @@ class SemanticAnalyzer
                         inQuotes = !inQuotes;
                         
                         // If just got out of quotes, add the string to the Tree and link the held token
-                        if (!inQuotes) 
+                        if (!inQuotes && !collectNodes) 
                         {
                             myAST->addNode("leaf", currentString);
                             myAST->getMostRecentNode()->linkToken(heldToken);
                         } 
+                        // Collect node if they need to be collected for if and while statement
+                        else if (!inQuotes && collectNodes)
+                        {
+                            nodeNames.emplace_back(currentString);
+                        }
                         // If just got into the quotes, clear the string that will be overwritten and get token that will be linked
                         else 
                         {
@@ -118,6 +131,11 @@ class SemanticAnalyzer
                     {
                         currentString += node->getName();
                     } 
+                    // Collect node if they need to be collected for if and while statement
+                    else if (collectNodes)
+                    {
+                        nodeNames.emplace_back(node->getName());
+                    }
                     // Base case: Add the leaf node to the tree and link token
                     else 
                     {
@@ -136,13 +154,33 @@ class SemanticAnalyzer
                     bName == "While Statement" || bName == "If Statement")
                 {
                     important = true;
-                    myAST->addNode("branch", node->getName());
+
+                    // Tree structure is different for IF and WHILE statements, start collecting nodes to add to vector
+                    if (!collectNodes && (bName == "While Statement" || bName == "If Statement"))
+                    {
+                        collectNodes = true;
+                        oldDepth = depth;
+
+                        myAST->addNode("branch", node->getName());
+                    }
+                    // If in collecting mode and the statement is finished, stop collecting and add nodes in proper order
+                    else if (collectNodes && oldDepth == depth - 1)
+                    {
+                        collectNodes = false;
+                        nodeNames.emplace_back(node->getName());
+                        formatNodes();
+                    }
+                    // Add the branch node to the AST (follow CST structure)
+                    else
+                    {
+                        myAST->addNode("branch", node->getName());
+                    }
                 }
 
                 // Recursively expand the branches
                 for (int i = 0, childrenSize = node->getChildren().size(); i < childrenSize; i++)
                 {
-                    inorder(node->getChild(i));
+                    inorder(node->getChild(i), depth + 1);
                 }
 
                 if (important)
@@ -152,6 +190,26 @@ class SemanticAnalyzer
             }
         }
 
+        // Format the nodes from the IF/WHILE statements
+        void formatNodes()
+        {
+            if (nodeNames[1] == "==")
+            {
+                myAST->addNode("branch", "isEq");
+            }
+            else
+            {
+                myAST->addNode("branch", "isNotEq");
+            }
+
+            myAST->addNode("leaf", nodeNames[0]);
+            myAST->addNode("leaf", nodeNames[2]);
+            myAST->moveUp();
+
+            myAST->addNode("branch", nodeNames[3]);
+
+            nodeNames.clear();
+        }
 
         // Most of the expand() function references code by Alan G. Labouseur, based on the 2009 work by Michael Ardizzone and Tim Smith.
         // Recursive function to handle the expansion of the nodes
