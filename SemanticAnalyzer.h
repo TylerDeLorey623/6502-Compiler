@@ -129,17 +129,25 @@ class SemanticAnalyzer
                     // If in quotes, add to the string, don't add a new Node 
                     else if (inQuotes) 
                     {
-                        currentString += node->getName();
-                    } 
+                        currentString += lName;
+                    }
+                    // Stop collecting nodes if its just a if statement with either true/false (not an expression)
+                    else if (collectNodes && (lName == "true" || lName == "false"))
+                    {
+                        collectNodes = false;
+                        nodeNames.clear();
+                        myAST->addNode("leaf", lName);
+                        myAST->getMostRecentNode()->linkToken(currentToken);
+                    }
                     // Collect node if they need to be collected for if and while statement
                     else if (collectNodes)
                     {
-                        nodeNames.emplace_back(node->getName());
+                        nodeNames.emplace_back(lName);
                     }
                     // Base case: Add the leaf node to the tree and link token
                     else 
                     {
-                        myAST->addNode("leaf", node->getName());
+                        myAST->addNode("leaf", lName);
                         myAST->getMostRecentNode()->linkToken(currentToken);
                     }
                 }
@@ -161,19 +169,19 @@ class SemanticAnalyzer
                         collectNodes = true;
                         oldDepth = depth;
 
-                        myAST->addNode("branch", node->getName());
+                        myAST->addNode("branch", bName);
                     }
                     // If in collecting mode and the statement is finished, stop collecting and add nodes in proper order
                     else if (collectNodes && oldDepth == depth - 1)
                     {
                         collectNodes = false;
-                        nodeNames.emplace_back(node->getName());
+                        nodeNames.emplace_back(bName);
                         formatNodes();
                     }
                     // Add the branch node to the AST (follow CST structure)
                     else
                     {
-                        myAST->addNode("branch", node->getName());
+                        myAST->addNode("branch", bName);
                     }
                 }
 
