@@ -69,7 +69,7 @@ class SemanticAnalyzer
         int oldDepth = 0;
 
         // ADD branch
-        bool add = false;
+        int add = 0;
 
         // For leaf nodes
         Token* currentToken;
@@ -191,7 +191,8 @@ class SemanticAnalyzer
                 // Tree structure is different for ADD blocks
                 else if (bName == "Int Expr" && node->getChildren().size() > 1)
                 {
-                    add = true;
+                    // Add an add branch
+                    add++;
 
                     // If in collecting mode, collect the node (add a branch if not)
                     if (collectNodes)
@@ -216,10 +217,10 @@ class SemanticAnalyzer
                     important = false;
                     myAST->moveUp();
 
-                    // Move up twice if it was an ADD branch
-                    if (add)
+                    // Move up more if it was an ADD branch
+                    while (add > 0)
                     {
-                        add = false;
+                        add--;
                         myAST->moveUp();
                     }
                 }
