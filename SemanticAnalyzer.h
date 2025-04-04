@@ -63,9 +63,13 @@ class SemanticAnalyzer
         bool inQuotes = false;
         string currentString;
 
+        // IF/WHILE branch
         bool collectNodes = false;
         vector<string> nodeNames;
         int oldDepth = 0;
+
+        // ADD branch
+        bool add = false;
 
         // For leaf nodes
         Token* currentToken;
@@ -97,7 +101,7 @@ class SemanticAnalyzer
                 // Check if leaf is important
                 string lName = node->getName();
                 if (lName != "{" && lName != "}" && lName != "print" && lName != "while" && lName != "if" && lName != "(" && 
-                    lName != ")" && lName != "=" && lName != "$")
+                    lName != ")" && lName != "=" && lName != "$" && lName != "+")
                 {
                     // Get the linked token
                     currentToken = node->getToken(); 
@@ -131,7 +135,7 @@ class SemanticAnalyzer
                     {
                         currentString += lName;
                     }
-                    // Stop collecting nodes if its just a if statement with either true/false (not an expression)
+                    // Stop collecting nodes if its just a if/while statement with either true/false (not an expression)
                     else if (collectNodes && (lName == "true" || lName == "false"))
                     {
                         collectNodes = false;
@@ -184,6 +188,21 @@ class SemanticAnalyzer
                         myAST->addNode("branch", bName);
                     }
                 }
+                // Tree structure is different for ADD blocks
+                else if (bName == "Int Expr" && node->getChildren().size() > 1)
+                {
+                    add = true;
+
+                    // If in collecting mode, collect the node (add a branch if not)
+                    if (collectNodes)
+                    {
+                        nodeNames.emplace_back("ADD");
+                    }
+                    else
+                    {
+                        myAST->addNode("branch", "ADD");
+                    }
+                }
 
                 // Recursively expand the branches
                 for (int i = 0, childrenSize = node->getChildren().size(); i < childrenSize; i++)
@@ -191,9 +210,18 @@ class SemanticAnalyzer
                     inorder(node->getChild(i), depth + 1);
                 }
 
+                // Move up if the branch was important
                 if (important)
                 {
+                    important = false;
                     myAST->moveUp();
+
+                    // Move up twice if it was an ADD branch
+                    if (add)
+                    {
+                        add = false;
+                        myAST->moveUp();
+                    }
                 }
             }
         }
@@ -201,7 +229,44 @@ class SemanticAnalyzer
         // Format the nodes from the IF/WHILE statements
         void formatNodes()
         {
-            if (nodeNames[1] == "==")
+            // Indices for if/while statement
+            int equality = 1;
+            int firstLeaf = 0;
+            int secondLeaf = 2;
+            int blockBranch = 3;
+
+            // Stores value for whether or not each branch in if statement needs to be formatted differently based on ADDs
+            bool alternateFirstBranch = false;
+            bool alternateSecondBranch = false;
+
+            // If there are both ADDs in one if/while --> Ex: if (1 + a != 3 + b)
+            // Get correct index values so tree format is correct
+            if (nodeNames[0] == "ADD" && nodeNames[4] == "ADD")
+            {
+                equality = 3;
+                blockBranch = 7;
+                alternateFirstBranch = true;
+                alternateSecondBranch = true;
+            }
+            // If there is an ADD in the beginning of a if/while --> Ex: if (1 + a != b)
+            else if (nodeNames[0] == "ADD")
+            {
+                equality = 3;
+                secondLeaf = 4;
+                blockBranch = 5;
+                alternateFirstBranch = true;
+            }
+            // If there is an ADD in the end of a if/while --> Ex: if (a != 3 + b)
+            else if (nodeNames[2] == "ADD")
+            {
+                equality = 1;
+                firstLeaf = 0;
+                blockBranch = 5;
+                alternateSecondBranch = true;
+            }
+
+            // Adds a branch based off of the equality for the statement
+            if (nodeNames[equality] == "==")
             {
                 myAST->addNode("branch", "isEq");
             }
@@ -210,11 +275,52 @@ class SemanticAnalyzer
                 myAST->addNode("branch", "isNotEq");
             }
 
-            myAST->addNode("leaf", nodeNames[0]);
-            myAST->addNode("leaf", nodeNames[2]);
+            // If there are both ADDs in one if/while, add branches accordingly
+            if (alternateFirstBranch && alternateSecondBranch)
+            {
+                myAST->addNode("branch", "ADD");
+                myAST->addNode("leaf", nodeNames[1]);
+                myAST->addNode("leaf", nodeNames[2]);
+                myAST->moveUp();
+                myAST->addNode("branch", "ADD");
+                myAST->addNode("leaf", nodeNames[5]);
+                myAST->addNode("leaf", nodeNames[6]);
+                myAST->moveUp();
+            }
+            // If there is one ADD, or none at all...
+            else
+            {
+                // Add leaves accordingly based on first ADD placement
+                if (alternateFirstBranch)
+                {
+                    myAST->addNode("branch", "ADD");
+                    myAST->addNode("leaf", nodeNames[1]);
+                    myAST->addNode("leaf", nodeNames[2]);
+                    myAST->moveUp();
+                }
+                // If the first branch was normal (no ADD), add regular leaf
+                else
+                {
+                    myAST->addNode("leaf", nodeNames[firstLeaf]);
+                }
+
+                // Add branches accordingly based on SECOND ADD placement
+                if (alternateSecondBranch)
+                {
+                    myAST->addNode("branch", "ADD");
+                    myAST->addNode("leaf", nodeNames[3]);
+                    myAST->addNode("leaf", nodeNames[4]);
+                }
+                // If the second branch was normal (no ADD), add regular leaf
+                else
+                {
+                    myAST->addNode("leaf", nodeNames[secondLeaf]);
+                }
+            }
             myAST->moveUp();
 
-            myAST->addNode("branch", nodeNames[3]);
+            // Add a separate branch with code that would execute if statement was true 
+            myAST->addNode("branch", nodeNames[blockBranch]);
 
             nodeNames.clear();
         }
