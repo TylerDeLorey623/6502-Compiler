@@ -60,15 +60,22 @@ class Tree
             }
         }
 
-        // Getter for the root Node and most recent Node
+        // Getter for the root Node
         Node* getRoot()
         {
             return this->root;
         }
 
+        // Getter for most recent Node
         Node* getMostRecentNode()
         {
             return this->mostRecentNode;
+        }
+
+        // Getter for branch at the same level
+        Node* getCurrentBranch()
+        {
+            return this->current;
         }
 
     private:

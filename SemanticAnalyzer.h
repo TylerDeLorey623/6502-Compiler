@@ -215,14 +215,23 @@ class SemanticAnalyzer
                 if (important)
                 {
                     important = false;
-                    myAST->moveUp();
-
-                    // Move up more if it was an ADD branch
-                    while (add > 0)
+                    if (add == 0)
                     {
-                        add--;
-                        myAST->moveUp();
+                        cout << myAST->getCurrentBranch()->getName() << endl;
                     }
+                    // Move up more if it was an ADD branch
+                    else
+                    {
+                        while (add > 0)
+                        {
+                            cout << myAST->getCurrentBranch()->getName() << endl;
+                            add--;
+                            myAST->moveUp();
+                        }
+                        cout << myAST->getCurrentBranch()->getName() << endl;
+                    }
+
+                    myAST->moveUp();
                 }
             }
         }
@@ -282,10 +291,12 @@ class SemanticAnalyzer
                 myAST->addNode("branch", "ADD");
                 myAST->addNode("leaf", nodeNames[1]);
                 myAST->addNode("leaf", nodeNames[2]);
+                cout << myAST->getCurrentBranch()->getName() << endl;
                 myAST->moveUp();
                 myAST->addNode("branch", "ADD");
                 myAST->addNode("leaf", nodeNames[5]);
                 myAST->addNode("leaf", nodeNames[6]);
+                cout << myAST->getCurrentBranch()->getName() << endl;
                 myAST->moveUp();
             }
             // If there is one ADD, or none at all...
@@ -297,6 +308,7 @@ class SemanticAnalyzer
                     myAST->addNode("branch", "ADD");
                     myAST->addNode("leaf", nodeNames[1]);
                     myAST->addNode("leaf", nodeNames[2]);
+                    cout << myAST->getCurrentBranch()->getName() << endl;
                     myAST->moveUp();
                 }
                 // If the first branch was normal (no ADD), add regular leaf
@@ -311,6 +323,8 @@ class SemanticAnalyzer
                     myAST->addNode("branch", "ADD");
                     myAST->addNode("leaf", nodeNames[3]);
                     myAST->addNode("leaf", nodeNames[4]);
+                    cout << myAST->getCurrentBranch()->getName() << endl;
+                    myAST->moveUp();
                 }
                 // If the second branch was normal (no ADD), add regular leaf
                 else
@@ -318,6 +332,7 @@ class SemanticAnalyzer
                     myAST->addNode("leaf", nodeNames[secondLeaf]);
                 }
             }
+            cout << myAST->getCurrentBranch()->getName() << endl;
             myAST->moveUp();
 
             // Add a separate branch with code that would execute if statement was true 
