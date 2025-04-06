@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
 
         // SEMANATIC ANALYSIS
         SemanticAnalyzer currentAnalyzer = SemanticAnalyzer(i + 1, currentCST);
-        currentAnalyzer.generateAST();
+        currentAnalyzer.generate();
         currentAnalyzer.printAST();
 
         // CODE GEN
@@ -104,6 +104,7 @@ int main(int argc, char* argv[])
         // PROPER MEMORY MANAGEMENT
         currentParse.deleteCST();
         currentAnalyzer.deleteAST();
+        currentAnalyzer.deleteSymbolTable();
 
     }
 }

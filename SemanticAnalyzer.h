@@ -49,9 +49,10 @@ class SemanticAnalyzer
             mySym = nullptr;
         }
 
-        // Generates the AST based on token stream by doing a modified version of the Recursive Decent Parser and grabbing the important things
-        // This time there will be no error checking since it is all already correct 
-        void generateAST()
+        // Generates the AST based on CST by grabbing the important things from the CST
+        // Also will generate the Symbol Table and do scope/type checking
+        // There will be no syntax error checking since it is all already correct 
+        void generate()
         {
             log("INFO", "AST for Program #" + to_string(programNumber));
             inorder(programCST->getRoot(), 0);
