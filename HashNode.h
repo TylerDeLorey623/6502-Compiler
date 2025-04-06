@@ -31,6 +31,12 @@ class HashNode
             return this->parent;
         }
 
+        // Getter for children vector
+        vector<HashNode*> getChildren()
+        {
+            return this->children;
+        }
+
     private:
         // Creates a struct that stores object information for each value in hash table
         struct hashObject
