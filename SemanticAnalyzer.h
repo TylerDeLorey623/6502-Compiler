@@ -13,8 +13,11 @@ class SemanticAnalyzer
             this->programNumber = progNum;
             this->programCST = progCST;
             
-            // Creates a pointer for the AST
+            // Pointer for the AST
             myAST = new Tree();
+
+            // Pointer for the Symbol Table
+            mySym = new SymbolTable();
         }
 
         // Prints the AST
@@ -38,6 +41,14 @@ class SemanticAnalyzer
             myAST = nullptr;
         }
 
+        // Deletes Symbol Table from Memory so there are no memory leaks
+        void deleteSymbolTable()
+        {
+            deleteHashNode(mySym->getRoot());
+            delete(mySym);
+            mySym = nullptr;
+        }
+
         // Generates the AST based on token stream by doing a modified version of the Recursive Decent Parser and grabbing the important things
         // This time there will be no error checking since it is all already correct 
         void generateAST()
@@ -59,6 +70,9 @@ class SemanticAnalyzer
         // AST Members
         Tree* myAST;
         string traversalResult;
+
+        // Symbol Table Pointer
+        SymbolTable* mySym;
 
         bool inQuotes = false;
         string currentString;
@@ -87,6 +101,20 @@ class SemanticAnalyzer
                 for (int i = 0, n = nodeChildren.size(); i < n; i++)
                 {
                     deleteNode(nodeChildren[i]);
+                }
+                delete(curNode);
+            }
+        }
+
+        // Deletes Symbol Table from Memory by deleting its HashNodes recursively
+        void deleteHashNode(HashNode* curNode)
+        {
+            if (curNode != nullptr)
+            {
+                vector<HashNode*> nodeChildren = curNode->getChildren(); 
+                for (int i = 0, n = nodeChildren.size(); i < n; i++)
+                {
+                    deleteHashNode(nodeChildren[i]);
                 }
                 delete(curNode);
             }
