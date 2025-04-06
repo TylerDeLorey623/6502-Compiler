@@ -17,7 +17,9 @@ HEADERS = Verbose.h \
 		  Parser.h \
 		  SemanticAnalyzer.h \
 		  Tree.h \
-		  Node.h 
+		  Node.h \
+		  HashNode.h \
+		  SymbolTable.h
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)

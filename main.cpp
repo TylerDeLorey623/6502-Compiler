@@ -3,10 +3,12 @@
 #include <sstream>
 #include <vector>
 #include <regex>
+#include <unordered_map>
 
 #include "Verbose.h"
 #include "Token.h"
 #include "Tree.h"
+#include "SymbolTable.h"
 
 #include "Lexer.h"
 #include "Parser.h"
