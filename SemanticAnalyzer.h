@@ -56,11 +56,6 @@ class SemanticAnalyzer
         {
             log("INFO", "AST for Program #" + to_string(programNumber));
             inorder(programCST->getRoot(), 0);
-
-            for (int i = 0; i < nodeNames.size(); i++)
-            {
-                cout << nodeNames[i] << endl;
-            }
         }
 
     private:
@@ -75,6 +70,10 @@ class SemanticAnalyzer
         // Symbol Table Pointer
         SymbolTable* mySym;
 
+        // Tracks Scope
+        int currentScope = -1;
+
+        // Converting strings into a single leaf node
         bool inQuotes = false;
         string currentString;
 
@@ -82,9 +81,11 @@ class SemanticAnalyzer
         bool collectNodes = false;
         vector<string> nodeNames;
         int oldDepth = 0;
+        string equalitySign = "UNKNOWN";
 
         // ADD branch
         int add = 0;
+        int ifWhileAdd = 0;
 
         // For leaf nodes
         Token* currentToken;
@@ -175,6 +176,16 @@ class SemanticAnalyzer
                     // Collect node if they need to be collected for if and while statement
                     else if (collectNodes)
                     {
+                        // Note equality sign if there is one
+                        if (lName == "==")
+                        {
+                            equalitySign = "isEq";
+                        }
+                        else if (lName == "!=")
+                        {
+                            equalitySign = "isNotEq";
+                        }
+
                         nodeNames.emplace_back(lName);
                     }
                     // Base case: Add the leaf node to the tree and link token
@@ -215,14 +226,17 @@ class SemanticAnalyzer
                     else
                     {
                         myAST->addNode("branch", bName);
+
+                        // If its a block, move up scope pointer
+                        if (bName == "Block")
+                        {
+                            currentScope++;
+                        }
                     }
                 }
                 // Tree structure is different for ADD blocks
                 else if (bName == "Int Expr" && node->getChildren().size() > 1)
                 {
-                    // Add an add branch
-                    add++;
-
                     // If in collecting mode, collect the node (add a branch if not)
                     if (collectNodes)
                     {
@@ -230,6 +244,8 @@ class SemanticAnalyzer
                     }
                     else
                     {
+                        // Add an add branch
+                        add++;
                         myAST->addNode("branch", "ADD");
                     }
                 }
@@ -244,129 +260,94 @@ class SemanticAnalyzer
                 if (important)
                 {
                     important = false;
-                    if (add == 0)
-                    {
-                        cout << myAST->getCurrentBranch()->getName() << endl;
-                    }
+
                     // Move up more if it was an ADD branch
-                    else
+                    while (add > 0)
                     {
-                        while (add > 0)
-                        {
-                            cout << myAST->getCurrentBranch()->getName() << endl;
-                            add--;
-                            myAST->moveUp();
-                        }
-                        cout << myAST->getCurrentBranch()->getName() << endl;
+                        add--;
+                        symbolAndMove();
                     }
 
-                    myAST->moveUp();
+                    symbolAndMove();
                 }
             }
+        }
+
+        // Two functions are called whenever moving branch up
+        // First deals with symbol table scope/type checking
+        // Second deals with moving current node up the AST  
+        void symbolAndMove()
+        {
+            semanticCheck();
+            myAST->moveUp();
+        }
+
+        // Does scope/type checking on the current branch
+        void semanticCheck()
+        {
+            // Gets current branch information
+            Node* curBranch = myAST->getCurrentBranch();
+            string branchName = curBranch->getName();
+
+            if (branchName == "Block")
+            {
+                currentScope--;
+            }
+
+            cout << "Scope: " << currentScope << endl;
+            cout << branchName << endl << endl;
         }
 
         // Format the nodes from the IF/WHILE statements
         void formatNodes()
         {
-            // Indices for if/while statement
-            int equality = 1;
-            int firstLeaf = 0;
-            int secondLeaf = 2;
-            int blockBranch = 3;
+            myAST->addNode("branch", equalitySign);
 
-            // Stores value for whether or not each branch in if statement needs to be formatted differently based on ADDs
-            bool alternateFirstBranch = false;
-            bool alternateSecondBranch = false;
-
-            // If there are both ADDs in one if/while --> Ex: if (1 + a != 3 + b)
-            // Get correct index values so tree format is correct
-            if (nodeNames[0] == "ADD" && nodeNames[4] == "ADD")
+            // Iterate through stored nodes
+            for (int i = 0; i < nodeNames.size(); i++)
             {
-                equality = 3;
-                blockBranch = 7;
-                alternateFirstBranch = true;
-                alternateSecondBranch = true;
-            }
-            // If there is an ADD in the beginning of a if/while --> Ex: if (1 + a != b)
-            else if (nodeNames[0] == "ADD")
-            {
-                equality = 3;
-                secondLeaf = 4;
-                blockBranch = 5;
-                alternateFirstBranch = true;
-            }
-            // If there is an ADD in the end of a if/while --> Ex: if (a != 3 + b)
-            else if (nodeNames[2] == "ADD")
-            {
-                equality = 1;
-                firstLeaf = 0;
-                blockBranch = 5;
-                alternateSecondBranch = true;
-            }
-
-            // Adds a branch based off of the equality for the statement
-            if (nodeNames[equality] == "==")
-            {
-                myAST->addNode("branch", "isEq");
-            }
-            else
-            {
-                myAST->addNode("branch", "isNotEq");
-            }
-
-            // If there are both ADDs in one if/while, add branches accordingly
-            if (alternateFirstBranch && alternateSecondBranch)
-            {
-                myAST->addNode("branch", "ADD");
-                myAST->addNode("leaf", nodeNames[1]);
-                myAST->addNode("leaf", nodeNames[2]);
-                cout << myAST->getCurrentBranch()->getName() << endl;
-                myAST->moveUp();
-                myAST->addNode("branch", "ADD");
-                myAST->addNode("leaf", nodeNames[5]);
-                myAST->addNode("leaf", nodeNames[6]);
-                cout << myAST->getCurrentBranch()->getName() << endl;
-                myAST->moveUp();
-            }
-            // If there is one ADD, or none at all...
-            else
-            {
-                // Add leaves accordingly based on first ADD placement
-                if (alternateFirstBranch)
+                string name = nodeNames[i];
+                
+                // If its an add, add a new branch
+                if (name == "ADD")
                 {
-                    myAST->addNode("branch", "ADD");
-                    myAST->addNode("leaf", nodeNames[1]);
-                    myAST->addNode("leaf", nodeNames[2]);
-                    cout << myAST->getCurrentBranch()->getName() << endl;
-                    myAST->moveUp();
+                    ifWhileAdd++;
+                    myAST->addNode("branch", name);
                 }
-                // If the first branch was normal (no ADD), add regular leaf
+                // If it was a Block, nodeNames should be completed, move up tree, add node, and exit loop
+                else if (name == "Block")
+                {
+                    // Move up tree more if there was ADD
+                    while (ifWhileAdd > 0)
+                    {
+                        ifWhileAdd--;
+                        symbolAndMove();
+                    }
+                    symbolAndMove();
+                    myAST->addNode("branch", name);
+
+                    // Change scope
+                    currentScope++;
+                    continue;
+                }
+                // If its a regular value, add a leaf node
+                else if (name != "==" && name != "!=")
+                {
+                    myAST->addNode("leaf", name);
+                }
+                // If its an equality sign, move up the tree if there were ADDs and continue
                 else
                 {
-                    myAST->addNode("leaf", nodeNames[firstLeaf]);
-                }
-
-                // Add branches accordingly based on SECOND ADD placement
-                if (alternateSecondBranch)
-                {
-                    myAST->addNode("branch", "ADD");
-                    myAST->addNode("leaf", nodeNames[3]);
-                    myAST->addNode("leaf", nodeNames[4]);
-                    cout << myAST->getCurrentBranch()->getName() << endl;
-                    myAST->moveUp();
-                }
-                // If the second branch was normal (no ADD), add regular leaf
-                else
-                {
-                    myAST->addNode("leaf", nodeNames[secondLeaf]);
+                    while (ifWhileAdd > 0)
+                    {
+                        ifWhileAdd--;
+                        symbolAndMove();
+                    }
                 }
             }
-            cout << myAST->getCurrentBranch()->getName() << endl;
-            myAST->moveUp();
 
-            // Add a separate branch with code that would execute if statement was true 
-            myAST->addNode("branch", nodeNames[blockBranch]);
-
+            // Reset nodes
+            equalitySign = "UNKNOWN";
             nodeNames.clear();
         }
 
