@@ -9,7 +9,26 @@ class HashNode
         // Parameterized Constructor for HashNode Class
         HashNode(string newVar, string newType)
         {
-            hashTable[newVar] = {newType, false, false};
+            this->hashTable[newVar] = {newType, false, false};
+            this->parent = nullptr;
+        }
+
+        // Setter for parent node
+        void setParent(HashNode* newParent)
+        {
+            this->parent = newParent;
+        }
+
+        // Adds a child to the children vector
+        void addChild(HashNode* childNode)
+        {
+            this->children.emplace_back(childNode);
+        }
+
+        // Getter for parent node
+        HashNode* getParent()
+        {
+            return this->parent;
         }
 
     private:
@@ -24,6 +43,8 @@ class HashNode
         // unordered_map has hashing capabilities
         // Hash table (variable, (type, isInitialized, isUsed))
         unordered_map<string, hashObject> hashTable;
+        HashNode* parent;
+        vector<HashNode*> children; 
 };
 
 #endif
