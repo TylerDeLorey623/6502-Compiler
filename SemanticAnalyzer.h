@@ -23,6 +23,8 @@ class SemanticAnalyzer
         // Prints the AST
         void printAST()
         {
+            log("INFO", "AST for Program #" + to_string(programNumber));
+            
             // Initialize the result string
             traversalResult = "";
 
@@ -54,7 +56,6 @@ class SemanticAnalyzer
         // There will be no syntax error checking since it is all already correct 
         void generate()
         {
-            log("INFO", "AST for Program #" + to_string(programNumber));
             inorder(programCST->getRoot(), 0);
         }
 
@@ -329,8 +330,8 @@ class SemanticAnalyzer
                 } 
                 
                 // Does semantic checking for both leaves of the ADD
-                checkWithADDs(curBranch->getChild(0), curHashNode, overallBranch);
-                checkWithADDs(curBranch->getChild(1), curHashNode, overallBranch);
+                checkWithADDs(curBranch->getChild(0), curHashNode, overallBranch->getName());
+                checkWithADDs(curBranch->getChild(1), curHashNode, overallBranch->getName());
             }
             // Scope check to see if variable exists
             else if (branchName == "Print Statement")
@@ -515,13 +516,10 @@ class SemanticAnalyzer
                     log("ERROR", "Redeclared identifier " + var + " at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                 }
             }
-
-            cout << curHashNode->getName() << endl;
-            cout << branchName << endl << endl;
         }
 
         // Does semantic checking when involving ADD statements
-        void checkWithADDs(Node* leaf, HashNode* hashNode, Node* statement)
+        void checkWithADDs(Node* leaf, HashNode* hashNode, string overallBranchName)
         {
             string name = leaf->getName();
             bool isCorrect = false;
@@ -540,29 +538,25 @@ class SemanticAnalyzer
                 isCorrect = true;
             }
             // Checks if its a variable
-            if (name != "ADD" && linkedToken->getType() == "ID")
+            if (name != "ADD" && leaf->isTokenLinked() && linkedToken->getType() == "ID")
             {
                 correctNode = findInSymbolTable(hashNode, name);
                 isCorrect = correctNode;
             }
             // Checks if its a digit
-            else if (linkedToken->getType() == "DIGIT")
+            else if (leaf->isTokenLinked() && linkedToken->getType() == "DIGIT")
             {
                 isCorrect = true;
             }
-
-            string overallBranchName = statement->getName();
             
             // If not successful, error/warning based on overarching statement
             if (!isCorrect)
             {
-                cout << statement->getName() << endl;
-                
                 // These statements cannot use undeclared variables  
                 if (overallBranchName == "Print Statement" || overallBranchName == "Assignment Statement" ||
                     overallBranchName == "isEq" || overallBranchName == "isNotEq")
                 {
-                    if (linkedToken->getType() == "ID")
+                    if (leaf->isTokenLinked() && linkedToken->getType() == "ID")
                     {
                         log("ERROR", "Use of undeclared variable '" + name + "' at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
                     }
@@ -584,7 +578,7 @@ class SemanticAnalyzer
                 }
             }
             // If it was correct and a variable
-            else if (linkedToken->getType() == "ID")
+            else if (leaf->isTokenLinked() && linkedToken->getType() == "ID")
             {
                 // If the variable involved isn't an integer type, throw type error
                 if (correctNode->getType(name) != "int")
