@@ -23,16 +23,18 @@ class SemanticAnalyzer
         // Prints the AST
         void printAST()
         {
-            log("INFO", "AST for Program #" + to_string(programNumber));
-            
-            // Initialize the result string
-            traversalResult = "";
+            if (VERBOSE)
+            {
+                log("INFO", "AST for Program #" + to_string(programNumber + 1));
+                // Initialize the result string
+                traversalResult = "";
 
-            // Make initial call to expand from root
-            expand(myAST->getRoot(), 0);
+                // Make initial call to expand from root
+                expand(myAST->getRoot(), 0);
 
-            // Print results
-            cout << traversalResult << endl;
+                // Print results
+                cout << traversalResult << endl;
+            }
         }
 
         // Deletes AST from Memory so there are no memory leaks
@@ -56,7 +58,20 @@ class SemanticAnalyzer
         // There will be no syntax error checking since it is all already correct 
         void generate()
         {
+            log("INFO", "Semantic Analysis for Program #" + to_string(programNumber));
             inorder(programCST->getRoot(), 0);
+        }
+
+        void traverseSymbolTable()
+        {
+            traverseST(mySym->getRoot());
+            log("INFO", "Semantic Analysis completed with " + to_string(errorCount) + " error(s) and " + to_string(warningCount) + " warning(s)");
+        }
+
+        // Returns error count
+        int getErrors()
+        {
+            return errorCount;
         }
 
     private:
@@ -350,6 +365,7 @@ class SemanticAnalyzer
                     // Sets the variable to used if it was found
                     if (successful)
                     {
+                        correctNode->setLineAndColumn(name1, linkedToken1->getLine(), linkedToken1->getColumn());
                         correctNode->setUsed(name1);
                     }
                     else
@@ -382,6 +398,7 @@ class SemanticAnalyzer
                     if (successful)
                     {
                         type1 = correctNode->getType(name1);
+                        correctNode->setLineAndColumn(name1, linkedToken1->getLine(), linkedToken1->getColumn());
 
                         if (branchName == "Assignment Statement")
                         {
@@ -415,6 +432,7 @@ class SemanticAnalyzer
                     if (successful)
                     {
                         type2 = correctNode->getType(name2);
+                        correctNode->setLineAndColumn(name2, linkedToken2->getLine(), linkedToken2->getColumn());
                         
                         if (branchName == "Assignment Statement")
                         {
@@ -509,10 +527,13 @@ class SemanticAnalyzer
                 // Add the hash value
                 successful = curHashNode->addValue(var, type);
 
+                // Add line and column members to hash
+                linkedToken1 = curBranch->getChild(0)->getToken();
+                curHashNode->setLineAndColumn(var, linkedToken1->getLine(), linkedToken1->getColumn());
+
                 // If there was a collision, throw error
                 if (!successful)
                 {
-                    linkedToken1 = curBranch->getChild(0)->getToken();
                     log("ERROR", "Redeclared identifier " + var + " at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                 }
             }
@@ -758,6 +779,19 @@ class SemanticAnalyzer
 
             // Return the new scope letter
             return subVals[scopeVal]; 
+        }
+
+        // Code that traverses symbol table to check for the "unused" warnings
+        void traverseST(HashNode* node)
+        {
+            // Check each hash at this scope
+            warningCount += node->warningCheck();
+
+            // Recursively expand the branches
+            for (int i = 0, childrenSize = node->getChildren().size(); i < childrenSize; i++)
+            {
+                traverseST(node->getChild(i));
+            }
         }
 
         // Most of the expand() function references code by Alan G. Labouseur, based on the 2009 work by Michael Ardizzone and Tim Smith.
