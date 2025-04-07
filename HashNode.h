@@ -6,11 +6,17 @@ using namespace std;
 class HashNode
 {
     public:
-        // Parameterized Constructor for HashNode Class
-        HashNode(string newVar, string newType)
+        // Constructor for HashNode Class
+        HashNode(string newName)
+        {
+            this->name = newName;
+            this->parent = nullptr;
+        }
+
+        // Adds a new value to the hash table
+        void addValue(string newVar, string newType)
         {
             this->hashTable[newVar] = {newType, false, false};
-            this->parent = nullptr;
         }
 
         // Setter for parent node
@@ -23,6 +29,12 @@ class HashNode
         void addChild(HashNode* childNode)
         {
             this->children.emplace_back(childNode);
+        }
+
+        // Getter for HashNode name
+        string getName()
+        {
+            return this->name;
         }
 
         // Getter for parent node
@@ -49,6 +61,9 @@ class HashNode
         // unordered_map has hashing capabilities
         // Hash table (variable, (type, isInitialized, isUsed))
         unordered_map<string, hashObject> hashTable;
+
+        // Other members
+        string name;
         HashNode* parent;
         vector<HashNode*> children; 
 };
