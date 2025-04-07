@@ -16,10 +16,10 @@ class SymbolTable
         }
 
         // Adds a Hashmap to the Symbol Table
-        void addNode(string var, string type)
+        void addHashNode(string name)
         {
             // Creates a new Node and sets its initial values
-            HashNode* newNode = new HashNode(var, type);
+            HashNode* newNode = new HashNode(name);
 
             // If there is no root Node, this Node becomes the root (and its parent is null)
             if (this->root == nullptr)
@@ -52,6 +52,12 @@ class SymbolTable
         HashNode* getRoot()
         {
             return this->root;
+        }
+
+        // Getter for current Node
+        HashNode* getCurrentHashNode()
+        {
+            return this->current;
         }
 
     private:
