@@ -81,6 +81,7 @@ class SemanticAnalyzer
         // IF/WHILE branch
         bool collectNodes = false;
         vector<string> nodeNames;
+        vector<Token*> tokenCollect;
         int oldDepth = 0;
         string equalitySign = "UNKNOWN";
 
@@ -153,6 +154,7 @@ class SemanticAnalyzer
                         else if (!inQuotes && collectNodes)
                         {
                             nodeNames.emplace_back(currentString);
+                            tokenCollect.emplace_back(currentToken);
                         }
                         // If just got into the quotes, clear the string that will be overwritten and get token that will be linked
                         else 
@@ -188,6 +190,7 @@ class SemanticAnalyzer
                         }
 
                         nodeNames.emplace_back(lName);
+                        tokenCollect.emplace_back(currentToken);
                     }
                     // Base case: Add the leaf node to the tree and link token
                     else 
@@ -221,6 +224,7 @@ class SemanticAnalyzer
                     {
                         collectNodes = false;
                         nodeNames.emplace_back(bName);
+                        tokenCollect.emplace_back(new Token());
                         formatNodes();
                     }
                     // Add the branch node to the AST (follow CST structure)
@@ -243,6 +247,7 @@ class SemanticAnalyzer
                     if (collectNodes)
                     {
                         nodeNames.emplace_back("ADD");
+                        tokenCollect.emplace_back(new Token());
                     }
                     else
                     {
@@ -287,17 +292,62 @@ class SemanticAnalyzer
         // Does scope/type checking on the current branch
         void semanticCheck()
         {
-            // Gets current branch information
+            // Gets current branch information and its children
             Node* curBranch = myAST->getCurrentBranch();
             string branchName = curBranch->getName();
+            Node* leaf1;
+            Node* leaf2;
+            Token* linkedToken;
+            bool successful = false;
+            string name;
 
+            // Move up tree if scope was changed
             if (branchName == "Block")
             {
                 mySym->moveUp();
                 currentScope--;
             }
 
+            // Get information about the current HashNode
             HashNode* curHashNode = mySym->getCurrentHashNode();
+
+            // Scope/type checking for each type of statement
+            if (branchName == "Print Statement")
+            {
+                // Set the variable to used if it exists
+                leaf1 = curBranch->getChild(0);
+                name = leaf1->getName();
+                linkedToken = leaf1->getToken();
+
+                // Finds the variable (if it exists)
+                HashNode* initialNode = curHashNode;
+                while (!successful && initialNode == nullptr)
+                {
+                    curHashNode = initialNode;
+                    successful = curHashNode->exists(name);
+                    initialNode = curHashNode->getParent();
+                }
+
+                // Sets the variable to used if it was found
+                if (successful)
+                {
+                    curHashNode->setUsed(name);
+                }
+                else
+                {
+                    log("ERROR", "Use of undeclared variable '" + name + "' at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                    errorCount++;
+                }
+            }
+            else if (branchName == "Assignment Statement")
+            {
+                
+            }
+
+            if (!successful)
+            {
+                cout << "NOT SUCCESSFUL" << endl;
+            }
 
             cout << curHashNode->getName() << endl;
             cout << branchName << endl << endl;
@@ -312,6 +362,7 @@ class SemanticAnalyzer
             for (int i = 0; i < nodeNames.size(); i++)
             {
                 string name = nodeNames[i];
+                Token* curToken = tokenCollect[i];
                 
                 // If its an add, add a new branch
                 if (name == "ADD")
@@ -340,6 +391,7 @@ class SemanticAnalyzer
                 else if (name != "==" && name != "!=")
                 {
                     myAST->addNode("leaf", name);
+                    myAST->getMostRecentNode()->linkToken(curToken);
                 }
                 // If its an equality sign, move up the tree if there were ADDs and continue
                 else
@@ -355,6 +407,16 @@ class SemanticAnalyzer
             // Reset nodes
             equalitySign = "UNKNOWN";
             nodeNames.clear();
+
+            // Delete all extra unnecessary Tokens and clear the Token List
+            for (int i = 0, n = tokenCollect.size(); i < n; i++)
+            {
+                if (tokenCollect[i]->getType() == "UNKNOWN")
+                {
+                    delete(tokenCollect[i]);
+                }
+            }
+            tokenCollect.clear();
         }
 
         // Gets the subvalue of a scope (Scope 1 may have 1a, 1b, etc)
