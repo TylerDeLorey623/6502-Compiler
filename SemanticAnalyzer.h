@@ -550,6 +550,7 @@ class SemanticAnalyzer
                 if (!successful)
                 {
                     log("ERROR", "Redeclared identifier " + var + " at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                    errorCount++;
                 }
             }
         }
