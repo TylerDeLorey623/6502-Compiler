@@ -475,10 +475,15 @@ class SemanticAnalyzer
                 // Type checking
                 if (noErrors)
                 {
-                    // Get type if it wasn't specified for the first (literals)
-                    if (type1 == "UNKNOWN")
+                    // Get type if it wasn't specified for the first ("ADD" and literals)
+                    if (name1 == "ADD")
                     {
-                        if (name1 == "ADD" || linkedToken1->getType() == "DIGIT")
+                        type1 = "int";
+                        linkedToken1 = leaf1->getChild(0)->getToken();
+                    }
+                    else if (type1 == "UNKNOWN")
+                    {
+                        if (linkedToken1->getType() == "DIGIT")
                         {
                             type1 = "int";
                         }
@@ -492,10 +497,15 @@ class SemanticAnalyzer
                         }
                     }
 
-                    // Get type if it wasn't specified for the second (literals)
-                    if (type2 == "UNKNOWN")
+                    // Get type if it wasn't specified for the second ("ADD" and literals)
+                    if (name2 == "ADD")
                     {
-                        if (name2 == "ADD" || linkedToken2->getType() == "DIGIT")
+                        type2 = "int";
+                        linkedToken2 = leaf2->getChild(0)->getToken();
+                    }
+                    else if (type2 == "UNKNOWN")
+                    {
+                        if (linkedToken2->getType() == "DIGIT")
                         {
                             type2 = "int";
                         }
@@ -518,10 +528,23 @@ class SemanticAnalyzer
                         {
                             operation = "Assigning";
                         }
-                        if (linkedToken2->getType() == "ID")
+
+                        // This statement can only be true when in if/while
+                        if (name1 == "ADD")
+                        {
+                            log("ERROR", "Type mismatch: " + operation + " " + type1 + " expression to " + type2 + " variable [" + name2 + "] at (" + to_string(linkedToken2->getLine()) + ":" + to_string(linkedToken2->getColumn()) + ")");
+                        }
+                        // This statement can be true in either assignment or if/while
+                        else if (name2 == "ADD")
+                        {
+                            log("ERROR", "Type mismatch: " + operation + " " + type1 + " variable [" + name1 + "] to " + type2 + " expression at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                        }
+                        // Type mismatch error when both are IDs
+                        else if (linkedToken2->getType() == "ID")
                         {
                             log("ERROR", "Type mismatch: " + operation + " " + type1 + " variable [" + name1 + "] to " + type2 + " variable [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                         }
+                        // Type mismatch error when dealing with literal
                         else
                         {
                             log("ERROR", "Type mismatch: " + operation + " " + type1 + " variable [" + name1 + "] to " + type2 + " literal [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
@@ -542,12 +565,15 @@ class SemanticAnalyzer
                 // Add the hash value
                 successful = curHashNode->addValue(var, type);
 
-                // Add line and column members to hash
                 linkedToken1 = curBranch->getChild(0)->getToken();
-                curHashNode->setLineAndColumn(var, linkedToken1->getLine(), linkedToken1->getColumn());
 
+                // If no collision, add line and column members to hash
+                if (successful)
+                {
+                    curHashNode->setLineAndColumn(var, linkedToken1->getLine(), linkedToken1->getColumn());
+                }
                 // If there was a collision, throw error
-                if (!successful)
+                else
                 {
                     log("ERROR", "Redeclared identifier " + var + " at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                     errorCount++;
@@ -609,7 +635,7 @@ class SemanticAnalyzer
                         {
                             type = "boolean";
                         }
-                        log("ERROR", "Using " + type + " in integer expression at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                        log("ERROR", "Using " + type + " in int expression at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
                     }
                     errorCount++;
                 }
@@ -620,7 +646,7 @@ class SemanticAnalyzer
                 // If the variable involved isn't an integer type, throw type error
                 if (correctNode->getType(name) != "int")
                 {
-                    log("ERROR", "Type mismatch: Using " + correctNode->getType(name) + " variable [" + name + "] in integer expression at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                    log("ERROR", "Type mismatch: Using " + correctNode->getType(name) + " variable [" + name + "] in int expression at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
                     errorCount++;
                 }
                 // Set variable to used

@@ -33,12 +33,12 @@ class HashNode
             {
                 if (!val.second.isInitialized)
                 {
-                    log("WARNING", "Variable " + val.first + " is declared at (" + to_string(getLine(val.first)) + ":" + to_string(getColumn(val.first)) + "), but never initialized");
+                    log("WARNING", val.second.type + " [" + val.first + "] is declared at (" + to_string(getLine(val.first)) + ":" + to_string(getColumn(val.first)) + "), but never initialized");
                     warningCount++;
                 }
                 else if (!val.second.isUsed)
                 {
-                    log("WARNING", "Variable " + val.first + " is initialized at (" + to_string(getLine(val.first)) + ":" + to_string(getColumn(val.first)) + "), but never used");
+                    log("WARNING", val.second.type + " [" + val.first + "] is initialized at (" + to_string(getLine(val.first)) + ":" + to_string(getColumn(val.first)) + "), but never used");
                     warningCount++;
                 }
             }
