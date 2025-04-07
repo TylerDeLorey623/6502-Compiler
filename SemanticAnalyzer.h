@@ -359,7 +359,7 @@ class SemanticAnalyzer
                 }
             }
             // Find symbol in symbol table and type check
-            else if (branchName == "Assignment Statement")
+            else if (branchName == "Assignment Statement" || branchName == "isEq" || branchName == "isNotEq")
             {
                 bool noErrors = true;
 
@@ -373,29 +373,34 @@ class SemanticAnalyzer
                 linkedToken2 = leaf2->getToken();
 
                 // Scope check the identifier
-                correctNode = findInSymbolTable(curHashNode, name1);
-                successful = correctNode;
+                if (name1 != "ADD" && linkedToken1->getType() == "ID")
+                {
+                    correctNode = findInSymbolTable(curHashNode, name1);
+                    successful = correctNode;
 
-                if (successful)
-                {
-                    type1 = correctNode->getType(name1);
-                    correctNode->setInitialized(name1);
-                }
-                else
-                {
-                    log("ERROR", "Use of undeclared variable '" + name1 + "' at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
-                    errorCount++;
-                    noErrors = false;
+                    if (successful)
+                    {
+                        type1 = correctNode->getType(name1);
+                        correctNode->setInitialized(name1);
+                    }
+                    else
+                    {
+                        log("ERROR", "Use of undeclared variable '" + name1 + "' at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                        errorCount++;
+                        noErrors = false;
+                    }
                 }
 
                 // Also scope check the second leaf to see its an identifier, not just an int, string, or boolean
                 if (name2 != "ADD" && linkedToken2->getType() == "ID")
                 {
-                    successful = findInSymbolTable(curHashNode, name1);
+                    correctNode = findInSymbolTable(curHashNode, name2);
+                    successful = correctNode;
 
                     if (successful)
                     {
                         type2 = correctNode->getType(name2);
+                        correctNode->setInitialized(name2);
                     }
                     else
                     {
@@ -406,11 +411,29 @@ class SemanticAnalyzer
                 }
 
                 // Type checking
-                if (noErrors && name2 != "ADD")
+                if (noErrors)
                 {
+                    // Get type if it wasn't specified for the first (literals)
+                    if (type1 == "UNKNOWN")
+                    {
+                        if (name1 == "ADD" || linkedToken1->getType() == "DIGIT")
+                        {
+                            type1 = "int";
+                        }
+                        else if (linkedToken1->getType() == "QUOTE")
+                        {
+                            type1 = "string";
+                        }
+                        else if (linkedToken1->getType() == "BOOL_VAL")
+                        {
+                            type1 = "boolean";
+                        }
+                    }
+
+                    // Get type if it wasn't specified for the second (literals)
                     if (type2 == "UNKNOWN")
                     {
-                        if (linkedToken2->getType() == "DIGIT")
+                        if (name2 == "ADD" || linkedToken2->getType() == "DIGIT")
                         {
                             type2 = "int";
                         }
@@ -420,19 +443,26 @@ class SemanticAnalyzer
                         }
                         else if (linkedToken2->getType() == "BOOL_VAL")
                         {
-                            type2 = "bool";
+                            type2 = "boolean";
                         }
                     }
 
+                    // If types don't match, throw an error
                     if (type1 != type2)
                     {
+                        // Correct error messaging
+                        string operation = "Comparing";
+                        if (branchName == "Assignment Statement")
+                        {
+                            operation = "Assigning";
+                        }
                         if (linkedToken2->getType() == "ID")
                         {
-                            log("ERROR", "Type mismatch: Assigning " + type1 + " variable [" + name1 + "] to " + type2 + " variable [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                            log("ERROR", "Type mismatch: " + operation + " " + type1 + " variable [" + name1 + "] to " + type2 + " variable [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                         }
                         else
                         {
-                            log("ERROR", "Type mismatch: Assigning " + type1 + " variable [" + name1 + "] to " + type2 + " literal [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                            log("ERROR", "Type mismatch: " + operation + " " + type1 + " variable [" + name1 + "] to " + type2 + " literal [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                         }
                         
                         errorCount++;
@@ -494,6 +524,8 @@ class SemanticAnalyzer
             if (!isCorrect)
             {
                 cout << statement->getName() << endl;
+                
+                // These statements cannot use undeclared variables  
                 if (overallBranchName == "Print Statement" || overallBranchName == "Assignment Statement" ||
                     overallBranchName == "isEq" || overallBranchName == "isNotEq")
                 {
@@ -501,6 +533,7 @@ class SemanticAnalyzer
                     {
                         log("ERROR", "Use of undeclared variable '" + name + "' at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
                     }
+                    // If variable is declared, then there was a type error
                     else
                     {
                         string type;
@@ -510,7 +543,7 @@ class SemanticAnalyzer
                         }
                         else if (linkedToken->getType() == "BOOL_VAL")
                         {
-                            type = "bool";
+                            type = "boolean";
                         }
                         log("ERROR", "Using " + type + " in integer expression at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
                     }
