@@ -13,10 +13,43 @@ class HashNode
             this->parent = nullptr;
         }
 
-        // Adds a new value to the hash table
-        void addValue(string newVar, string newType)
+        // Adds a new value to the hash table and returns if it was successful (no collision)
+        bool addValue(string newVar, string newType)
         {
-            this->hashTable[newVar] = {newType, false, false};
+            bool success = false;
+            if (!exists(newVar))
+            {
+                this->hashTable[newVar] = {newType, false, false};
+                success = true;
+            }
+            return success;
+        }
+
+        // Checks if values were used and initialized
+        int warningCheck()
+        {
+            int warningCount = 0;
+            for (const auto& val : hashTable)
+            {
+                if (!val.second.isInitialized)
+                {
+                    log("WARNING", "Variable " + val.first + " is declared at (" + to_string(getLine(val.first)) + ":" + to_string(getColumn(val.first)) + "), but never initialized");
+                    warningCount++;
+                }
+                else if (!val.second.isUsed)
+                {
+                    log("WARNING", "Variable " + val.first + " is initialized at (" + to_string(getLine(val.first)) + ":" + to_string(getColumn(val.first)) + "), but never used");
+                    warningCount++;
+                }
+            }
+            return warningCount;
+        }
+
+        // Set line and column for Hash Value
+        void setLineAndColumn(string name, int newLine, int newColumn)
+        {
+            this->hashTable[name].line = newLine;
+            this->hashTable[name].column = newColumn;
         }
 
         // Setter for parent node
@@ -25,10 +58,34 @@ class HashNode
             this->parent = newParent;
         }
 
+        // Setter that this HashNode was used
+        void setUsed(string name)
+        {
+            this->hashTable[name].isUsed = true;
+        }
+
+        // Setter that this HashNode is initialized
+        void setInitialized(string name)
+        {
+            this->hashTable[name].isInitialized = true;
+        }
+
         // Adds a child to the children vector
         void addChild(HashNode* childNode)
         {
             this->children.emplace_back(childNode);
+        }
+
+        // Getter for line number
+        int getLine(string name)
+        {
+            return this->hashTable[name].line;
+        }
+
+        // Getter for column number
+        int getColumn(string name)
+        {
+            return this->hashTable[name].column;
         }
 
         // Getter for HashNode name
@@ -49,6 +106,43 @@ class HashNode
             return this->children;
         }
 
+        // Getter for a specific child at index
+        HashNode* getChild(int index)
+        {
+            return this->children[index];
+        }
+
+        // Getter for a certain type
+        string getType(string name)
+        {
+            return this->hashTable[name].type;
+        }
+
+        // Gets whether or not variable was initialized
+        bool checkInitialized(string name)
+        {
+            return this->hashTable[name].isInitialized;
+        }
+
+        // Gets whether or not variable was used
+        bool checkUsed(string name)
+        {
+            return this->hashTable[name].isUsed;
+        }
+
+        // Returns whether or not a value in the hash table exists
+        bool exists(string name)
+        {
+            bool ifExists = false;
+
+            if (this->hashTable.find(name) != this->hashTable.end())
+            {
+                ifExists = true;
+            }
+
+            return ifExists;
+        } 
+
     private:
         // Creates a struct that stores object information for each value in hash table
         struct hashObject
@@ -56,6 +150,8 @@ class HashNode
             string type;
             bool isInitialized;
             bool isUsed;
+            int line;
+            int column;
         };
 
         // unordered_map has hashing capabilities
@@ -66,6 +162,34 @@ class HashNode
         string name;
         HashNode* parent;
         vector<HashNode*> children; 
+
+        // Logging function for Analyzer used for Hash Table warnings
+        void log(const string type, const string message)
+        {
+            // Only outputs if verbose mode is on or its INFO
+            if (VERBOSE || type != "DEBUG")
+            {
+                // For good looking formatting
+                const int spaceCount = 8;
+                const int spaces = spaceCount - type.length();
+                if (spaces <= 0)
+                {
+                    return;
+                }
+                
+                // Print type
+                cout << type;
+
+                // Adds correct number of spaces so all the messages line up.
+                for (int i = 0; i < spaces; i++)
+                {
+                    cout << " ";
+                }
+                cout << "Analyzer - ";
+
+                cout << message << endl;
+            }
+        }
 };
 
 #endif
