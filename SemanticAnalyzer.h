@@ -72,6 +72,7 @@ class SemanticAnalyzer
 
         // Tracks Scope
         int currentScope = -1;
+        vector<string> subVals;
 
         // Converting strings into a single leaf node
         bool inQuotes = false;
@@ -227,10 +228,11 @@ class SemanticAnalyzer
                     {
                         myAST->addNode("branch", bName);
 
-                        // If its a block, move up scope pointer
+                        // If its a block, create a new node on the symbol table
                         if (bName == "Block")
                         {
                             currentScope++;
+                            mySym->addHashNode("Scope " + to_string(currentScope) + getScopeSubValue(currentScope));
                         }
                     }
                 }
@@ -291,10 +293,13 @@ class SemanticAnalyzer
 
             if (branchName == "Block")
             {
+                mySym->moveUp();
                 currentScope--;
             }
 
-            cout << "Scope: " << currentScope << endl;
+            HashNode* curHashNode = mySym->getCurrentHashNode();
+
+            cout << curHashNode->getName() << endl;
             cout << branchName << endl << endl;
         }
 
@@ -328,6 +333,7 @@ class SemanticAnalyzer
 
                     // Change scope
                     currentScope++;
+                    mySym->addHashNode("Scope " + to_string(currentScope) + getScopeSubValue(currentScope));
                     continue;
                 }
                 // If its a regular value, add a leaf node
@@ -349,6 +355,80 @@ class SemanticAnalyzer
             // Reset nodes
             equalitySign = "UNKNOWN";
             nodeNames.clear();
+        }
+
+        // Gets the subvalue of a scope (Scope 1 may have 1a, 1b, etc)
+        string getScopeSubValue(int scopeVal)
+        {
+            // If this is a new scope, add a new string to the scope vector
+            if (subVals.size() == scopeVal)
+            {
+                subVals.emplace_back("");
+            }
+
+            // If this is an existing scope (Besides scope 0, as there will always be only one scope 0)
+            if (scopeVal != 0)
+            {
+                // Get previous letter
+                string currentLetter = subVals[scopeVal];
+                string newLetter;
+
+                // If there was no previous letter, set it to a
+                if (currentLetter == "")
+                {
+                    newLetter = "a";
+                }
+                // Otherwise, increment the scope letter
+                else
+                {
+                    // Increment any letter if not a z
+                    if (currentLetter.back() != 'z')
+                    {
+                        currentLetter.back() = currentLetter.back() + 1;
+                        newLetter = currentLetter;
+                    }
+                    // If the letter is z, increment previous letter as well (loop)
+                    else
+                    {
+                        // Says whether or not to increment selected letter based letter after it
+                        bool increment = false;
+
+                        // Loops through each letter from the back of the string to the front
+                        for (int i = currentLetter.length() - 1; i >= 0; i--)
+                        {
+                            char selectedLetter = currentLetter[i];
+
+                            // If the letter needs to be incremented and its not a z, increment it
+                            if (increment && selectedLetter != 'z')
+                            {
+                                currentLetter[i] = currentLetter[i] + 1;
+                                increment = false;
+                            }
+
+                            // If the letter is a 'z', set it to 'a' and add signal to increment previous letter as well
+                            if (selectedLetter == 'z')
+                            {
+                                currentLetter[i] = 'a';
+                                increment = true;
+                            }
+                        }
+
+                        // Insert an 'a' at the beginning of string if first letter was a 'z'
+                        if (increment)
+                        {
+                            increment = false;
+                            currentLetter.insert(currentLetter.begin(), 'a');
+                        }
+
+                        newLetter = currentLetter;
+                    }
+                }
+
+                subVals[scopeVal] = newLetter;
+            }
+
+            // Return the new scope letter
+            return subVals[scopeVal]; 
         }
 
         // Most of the expand() function references code by Alan G. Labouseur, based on the 2009 work by Michael Ardizzone and Tim Smith.
