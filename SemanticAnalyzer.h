@@ -384,8 +384,8 @@ class SemanticAnalyzer
                 } 
                 
                 // Does semantic checking for both leaves of the ADD
-                checkWithADDs(curBranch->getChild(0), curHashNode, overallBranch->getName());
-                checkWithADDs(curBranch->getChild(1), curHashNode, overallBranch->getName());
+                checkWithADDs(curBranch->getChild(0), curHashNode, overallBranch);
+                checkWithADDs(curBranch->getChild(1), curHashNode, overallBranch);
             }
             // Scope check to see if variable exists
             else if (branchName == "Print Statement")
@@ -439,11 +439,7 @@ class SemanticAnalyzer
                         type1 = correctNode->getType(name1);
                         correctNode->setLineAndColumn(name1, linkedToken1->getLine(), linkedToken1->getColumn());
 
-                        if (branchName == "Assignment Statement")
-                        {
-                            correctNode->setInitialized(name1);
-                        }
-                        else
+                        if (branchName != "Assignment Statement")
                         {
                             correctNode->setUsed(name1);
 
@@ -475,7 +471,13 @@ class SemanticAnalyzer
                         
                         if (branchName == "Assignment Statement")
                         {
-                            correctNode->setInitialized(name2);
+                            // Give warning if assigning variable to the same uninitialized variable 
+                            if (name1 == name2 && !correctNode->checkInitialized(name1))
+                            {
+                                log("WARNING", "Initialized variable [" + name2 + "] with itself at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                                warningCount++;
+                            }
+                            correctNode->setInitialized(name1);
                         }
                         else
                         {
@@ -617,12 +619,13 @@ class SemanticAnalyzer
         }
 
         // Does semantic checking when involving ADD statements
-        void checkWithADDs(Node* leaf, HashNode* hashNode, string overallBranchName)
+        void checkWithADDs(Node* leaf, HashNode* hashNode, Node* overallBranch)
         {
             string name = leaf->getName();
             bool isCorrect = false;
             Token* linkedToken;
             HashNode* correctNode;
+            string overallBranchName = overallBranch->getName();
 
             // Gets the linked token if it is a leaf (and not another ADD branch)
             if (leaf->isTokenLinked())
@@ -693,6 +696,18 @@ class SemanticAnalyzer
                     if (!correctNode->checkInitialized(name))
                     {
                         log("WARNING", "Using uninitialized variable " + name + " at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                    }
+                }
+                // Check if using the same variable to initialize an uninitialized variable
+                else if (overallBranchName == "Assignment Statement")
+                {
+                    string overallBranchChildName = overallBranch->getChild(0)->getName();
+
+                    // Give warning if assigning variable to the same uninitialized variable 
+                    if (name == overallBranchChildName && !correctNode->checkInitialized(overallBranchChildName))
+                    {
+                        log("WARNING", "Initialized variable [" + name + "] with itself at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                        warningCount++;
                     }
                 }
             } 
