@@ -299,11 +299,14 @@ class SemanticAnalyzer
             Node* leaf2;
 
             // Extra variables needed for scope/type checking
+            HashNode* correctNode;
             Token* linkedToken1;
             Token* linkedToken2;
             bool successful = false;
             string name1;
             string name2;
+            string type1 = "UNKNOWN";
+            string type2 = "UNKNOWN";
 
             // Move up tree if scope was changed
             if (branchName == "Block")
@@ -329,6 +332,7 @@ class SemanticAnalyzer
                 checkWithADDs(curBranch->getChild(0), curHashNode, overallBranch);
                 checkWithADDs(curBranch->getChild(1), curHashNode, overallBranch);
             }
+            // Scope check to see if variable exists
             else if (branchName == "Print Statement")
             {
                 // Set the variable to used if it exists
@@ -336,22 +340,117 @@ class SemanticAnalyzer
                 name1 = leaf1->getName();
                 linkedToken1 = leaf1->getToken();
 
-                successful = findInSymbolTable(curHashNode, name1);
+                // Don't do scope checking if its an ADD branch (since it has already been checked)
+                if (name1 != "ADD")
+                {
+                    correctNode = findInSymbolTable(curHashNode, name1);
+                    successful = correctNode;
 
-                // Sets the variable to used if it was found
+                    // Sets the variable to used if it was found
+                    if (successful)
+                    {
+                        correctNode->setUsed(name1);
+                    }
+                    else
+                    {
+                        log("ERROR", "Use of undeclared variable '" + name1 + "' at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                        errorCount++;
+                    }
+                }
+            }
+            // Find symbol in symbol table and type check
+            else if (branchName == "Assignment Statement")
+            {
+                bool noErrors = true;
+
+                // Get information for both leaves
+                leaf1 = curBranch->getChild(0);
+                name1 = leaf1->getName();
+                linkedToken1 = leaf1->getToken();
+
+                leaf2 = curBranch->getChild(1);
+                name2 = leaf2->getName();
+                linkedToken2 = leaf2->getToken();
+
+                // Scope check the identifier
+                correctNode = findInSymbolTable(curHashNode, name1);
+                successful = correctNode;
+
                 if (successful)
                 {
-                    curHashNode->setUsed(name1);
+                    type1 = correctNode->getType(name1);
+                    correctNode->setInitialized(name1);
                 }
                 else
                 {
                     log("ERROR", "Use of undeclared variable '" + name1 + "' at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                     errorCount++;
+                    noErrors = false;
+                }
+
+                // Also scope check the second leaf to see its an identifier, not just an int, string, or boolean
+                if (name2 != "ADD" && linkedToken2->getType() == "ID")
+                {
+                    successful = findInSymbolTable(curHashNode, name1);
+
+                    if (successful)
+                    {
+                        type2 = correctNode->getType(name2);
+                    }
+                    else
+                    {
+                        log("ERROR", "Use of undeclared variable '" + name2 + "' at (" + to_string(linkedToken2->getLine()) + ":" + to_string(linkedToken2->getColumn()) + ")");
+                        errorCount++;
+                        noErrors = false;
+                    }
+                }
+
+                // Type checking
+                if (noErrors && name2 != "ADD")
+                {
+                    if (type2 == "UNKNOWN")
+                    {
+                        if (linkedToken2->getType() == "DIGIT")
+                        {
+                            type2 = "int";
+                        }
+                        else if (linkedToken2->getType() == "QUOTE")
+                        {
+                            type2 = "string";
+                        }
+                        else if (linkedToken2->getType() == "BOOL_VAL")
+                        {
+                            type2 = "bool";
+                        }
+                    }
+
+                    if (type1 != type2)
+                    {
+                        if (linkedToken2->getType() == "ID")
+                        {
+                            log("ERROR", "Type mismatch: Assigning " + type1 + " variable [" + name1 + "] to " + type2 + " variable [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                        }
+                        else
+                        {
+                            log("ERROR", "Type mismatch: Assigning " + type1 + " variable [" + name1 + "] to " + type2 + " literal [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                        }
+                        
+                        errorCount++;
+                        noErrors = false;
+                    }
                 }
             }
-            else if (branchName == "Assignment Statement")
+            // Declare variable
+            else if (branchName == "Var Decl")
             {
+                // Get information for both leaves
+                leaf1 = curBranch->getChild(0);
+                name1 = leaf1->getName();
 
+                leaf2 = curBranch->getChild(1);
+                name2 = leaf2->getName();
+
+                curHashNode->addValue(name2, name1);
             }
 
             cout << curHashNode->getName() << endl;
@@ -364,6 +463,7 @@ class SemanticAnalyzer
             string name = leaf->getName();
             bool isCorrect = false;
             Token* linkedToken;
+            HashNode* correctNode;
 
             // Gets the linked token if it is a leaf (and not another ADD branch)
             if (leaf->isTokenLinked())
@@ -377,43 +477,72 @@ class SemanticAnalyzer
                 isCorrect = true;
             }
             // Checks if its a variable
-            if (name != "ADD" && isalpha(name[0]))
+            if (name != "ADD" && linkedToken->getType() == "ID")
             {
-                isCorrect = findInSymbolTable(hashNode, name);
+                correctNode = findInSymbolTable(hashNode, name);
+                isCorrect = correctNode;
             }
             // Checks if its a digit
-            else if (isdigit(name[0]))
+            else if (linkedToken->getType() == "DIGIT")
             {
                 isCorrect = true;
             }
 
+            string overallBranchName = statement->getName();
+            
             // If not successful, error/warning based on overarching statement
             if (!isCorrect)
             {
                 cout << statement->getName() << endl;
-                string overallBranchName = statement->getName();
                 if (overallBranchName == "Print Statement" || overallBranchName == "Assignment Statement" ||
                     overallBranchName == "isEq" || overallBranchName == "isNotEq")
                 {
-                    log("ERROR", "Use of undeclared variable '" + name + "' at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                    if (linkedToken->getType() == "ID")
+                    {
+                        log("ERROR", "Use of undeclared variable '" + name + "' at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                    }
+                    else
+                    {
+                        string type;
+                        if (linkedToken->getType() == "QUOTE")
+                        {
+                            type = "string";
+                        }
+                        else if (linkedToken->getType() == "BOOL_VAL")
+                        {
+                            type = "bool";
+                        }
+                        log("ERROR", "Using " + type + " in integer expression at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                    }
                     errorCount++;
                 }
+            }
+            // If the variable involved isn't an integer type, throw type error
+            else if (linkedToken->getType() == "ID" && correctNode->getType(name) != "int")
+            {
+                log("ERROR", "Type mismatch: Using " + correctNode->getType(name) + " variable [" + name + "] in integer expression at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                errorCount++;
             }
         }
 
         // Finds a variable in symbol table starting at hashnode
-        bool findInSymbolTable(HashNode* node, string varName)
+        // Returns false if nullptr, returns true if its valid
+        HashNode* findInSymbolTable(HashNode* node, string varName)
         {
             bool inTable = false;
 
             // Finds the variable (if it exists)
-            while (!inTable && node != nullptr)
+            while (node != nullptr)
             {
                 inTable = node->exists(varName);
+                if (inTable)
+                {
+                    break;
+                }
                 node = node->getParent();
             }
 
-            return inTable;
+            return node;
         }
 
         // Format the nodes from the IF/WHILE statements
