@@ -25,7 +25,7 @@ class SemanticAnalyzer
         {
             if (VERBOSE)
             {
-                log("INFO", "AST for Program #" + to_string(programNumber + 1));
+                log("INFO", "AST for Program #" + to_string(programNumber));
                 // Initialize the result string
                 traversalResult = "";
 
@@ -62,10 +62,25 @@ class SemanticAnalyzer
             inorder(programCST->getRoot(), 0);
         }
 
+        // Traverse Symbol Table to find more warnings
         void traverseSymbolTable()
         {
             traverseST(mySym->getRoot());
             log("INFO", "Semantic Analysis completed with " + to_string(errorCount) + " error(s) and " + to_string(warningCount) + " warning(s)");
+        }
+
+        // Print the Symbol Table in a neat and organized manner
+        void printSymbolTable()
+        {
+            if (VERBOSE)
+            {
+                log("INFO", "Symbol Table for Program #" + to_string(programNumber));
+                
+                log("INFO", "NAME        TYPE        isINIT?        isUSED?        SCOPE");
+
+                // Make initial call to expand from root
+                printST(mySym->getRoot());
+            }
         }
 
         // Returns error count
@@ -252,7 +267,7 @@ class SemanticAnalyzer
                         if (bName == "Block")
                         {
                             currentScope++;
-                            mySym->addHashNode("Scope " + to_string(currentScope) + getScopeSubValue(currentScope));
+                            mySym->addHashNode(to_string(currentScope) + getScopeSubValue(currentScope));
                         }
                     }
                 }
@@ -672,7 +687,7 @@ class SemanticAnalyzer
 
                     // Change scope
                     currentScope++;
-                    mySym->addHashNode("Scope " + to_string(currentScope) + getScopeSubValue(currentScope));
+                    mySym->addHashNode(to_string(currentScope) + getScopeSubValue(currentScope));
                     continue;
                 }
                 // If its a regular value, add a leaf node
@@ -781,7 +796,7 @@ class SemanticAnalyzer
             return subVals[scopeVal]; 
         }
 
-        // Code that traverses symbol table to check for the "unused" warnings
+        // Function that traverses symbol table to check for the "unused" warnings
         void traverseST(HashNode* node)
         {
             // Check each hash at this scope
@@ -791,6 +806,21 @@ class SemanticAnalyzer
             for (int i = 0, childrenSize = node->getChildren().size(); i < childrenSize; i++)
             {
                 traverseST(node->getChild(i));
+            }
+        }
+
+        // Function that traverses ST and prints it out
+        void printST(HashNode* node)
+        {
+            bool currentHashComplete = false;
+            int index = 0;
+
+            node->printCurrentHash();
+
+            // Recursively expand the branches
+            for (int i = 0, childrenSize = node->getChildren().size(); i < childrenSize; i++)
+            {
+                printST(node->getChild(i));
             }
         }
 
