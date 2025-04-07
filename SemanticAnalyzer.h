@@ -115,6 +115,8 @@ class SemanticAnalyzer
         vector<Token*> tokenCollect;
         int oldDepth = 0;
         string equalitySign = "UNKNOWN";
+        bool inComparison = false;
+        bool isComparison = true; 
 
         // ADD branch
         int add = 0;
@@ -161,8 +163,30 @@ class SemanticAnalyzer
             // If linked, is a leaf node, add if important
             if (node->isTokenLinked())
             {
-                // Check if leaf is important
+                // Get leaf name
                 string lName = node->getName();
+
+                // Making sure parenthesis from print statement don't count as comparison
+                if (lName == "print")
+                {
+                    isComparison = false;
+                }
+                else if (lName == ")")
+                {
+                    inComparison = false;
+                    isComparison = true;
+                }
+
+                // Marking for when inside parenthesis for edge case dealing with boolean comparison
+                if (isComparison)
+                {
+                    if (lName == "(")
+                    {
+                        inComparison = true;
+                    }
+                }
+
+                // Check if leaf is important
                 if (lName != "{" && lName != "}" && lName != "print" && lName != "while" && lName != "if" && lName != "(" && 
                     lName != ")" && lName != "=" && lName != "$" && lName != "+")
                 {
@@ -200,7 +224,7 @@ class SemanticAnalyzer
                         currentString += lName;
                     }
                     // Stop collecting nodes if its just a if/while statement with either true/false (not an expression)
-                    else if (collectNodes && (lName == "true" || lName == "false"))
+                    else if (collectNodes && !inComparison && (lName == "true" || lName == "false"))
                     {
                         collectNodes = false;
                         nodeNames.clear();
@@ -372,7 +396,7 @@ class SemanticAnalyzer
                 linkedToken1 = leaf1->getToken();
 
                 // Don't do scope checking if its an ADD branch (since it has already been checked)
-                if (name1 != "ADD")
+                if (name1 != "ADD" && linkedToken1->getType() == "ID")
                 {
                     correctNode = findInSymbolTable(curHashNode, name1);
                     successful = correctNode;
@@ -540,15 +564,26 @@ class SemanticAnalyzer
                             log("ERROR", "Type mismatch: " + operation + " " + type1 + " variable [" + name1 + "] to " + type2 + " expression at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                         }
                         // Type mismatch error when both are IDs
-                        else if (linkedToken2->getType() == "ID")
+                        else if (linkedToken1->getType() == "ID" && linkedToken2->getType() == "ID")
                         {
                             log("ERROR", "Type mismatch: " + operation + " " + type1 + " variable [" + name1 + "] to " + type2 + " variable [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                         }
-                        // Type mismatch error when dealing with literal
-                        else
+                        // Type mismatch error when dealing with first ID and second literal
+                        else if (linkedToken1->getType() == "ID")
                         {
                             log("ERROR", "Type mismatch: " + operation + " " + type1 + " variable [" + name1 + "] to " + type2 + " literal [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                         }
+                        // Type mismatch error when dealing with first literal and second ID
+                        else if (linkedToken1->getType() == "ID")
+                        {
+                            log("ERROR", "Type mismatch: " + operation + " " + type1 + " literal [" + name1 + "] to " + type2 + " variable [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                        }
+                        // Type mismatch error when dealing with two literals
+                        else
+                        {
+                            log("ERROR", "Type mismatch: " + operation + " " + type1 + " literal [" + name1 + "] to " + type2 + " literal [" + name2 + "] at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                        }
+                        
                         
                         errorCount++;
                         noErrors = false;
