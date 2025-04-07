@@ -297,9 +297,13 @@ class SemanticAnalyzer
             string branchName = curBranch->getName();
             Node* leaf1;
             Node* leaf2;
-            Token* linkedToken;
+
+            // Extra variables needed for scope/type checking
+            Token* linkedToken1;
+            Token* linkedToken2;
             bool successful = false;
-            string name;
+            string name1;
+            string name2;
 
             // Move up tree if scope was changed
             if (branchName == "Block")
@@ -312,45 +316,104 @@ class SemanticAnalyzer
             HashNode* curHashNode = mySym->getCurrentHashNode();
 
             // Scope/type checking for each type of statement
-            if (branchName == "Print Statement")
+            if (branchName == "ADD")
+            {
+                // Find the overarching statement
+                Node* overallBranch = curBranch;
+                while (overallBranch->getName() == "ADD")
+                {
+                    overallBranch = overallBranch->getParent();
+                } 
+                
+                // Does semantic checking for both leaves of the ADD
+                checkWithADDs(curBranch->getChild(0), curHashNode, overallBranch);
+                checkWithADDs(curBranch->getChild(1), curHashNode, overallBranch);
+            }
+            else if (branchName == "Print Statement")
             {
                 // Set the variable to used if it exists
                 leaf1 = curBranch->getChild(0);
-                name = leaf1->getName();
-                linkedToken = leaf1->getToken();
+                name1 = leaf1->getName();
+                linkedToken1 = leaf1->getToken();
 
-                // Finds the variable (if it exists)
-                HashNode* initialNode = curHashNode;
-                while (!successful && initialNode == nullptr)
-                {
-                    curHashNode = initialNode;
-                    successful = curHashNode->exists(name);
-                    initialNode = curHashNode->getParent();
-                }
+                successful = findInSymbolTable(curHashNode, name1);
 
                 // Sets the variable to used if it was found
                 if (successful)
                 {
-                    curHashNode->setUsed(name);
+                    curHashNode->setUsed(name1);
                 }
                 else
                 {
-                    log("ERROR", "Use of undeclared variable '" + name + "' at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                    log("ERROR", "Use of undeclared variable '" + name1 + "' at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                     errorCount++;
                 }
             }
             else if (branchName == "Assignment Statement")
             {
-                
-            }
 
-            if (!successful)
-            {
-                cout << "NOT SUCCESSFUL" << endl;
             }
 
             cout << curHashNode->getName() << endl;
             cout << branchName << endl << endl;
+        }
+
+        // Does semantic checking when involving ADD statements
+        void checkWithADDs(Node* leaf, HashNode* hashNode, Node* statement)
+        {
+            string name = leaf->getName();
+            bool isCorrect = false;
+            Token* linkedToken;
+
+            // Gets the linked token if it is a leaf (and not another ADD branch)
+            if (leaf->isTokenLinked())
+            {
+                linkedToken = leaf->getToken();
+            }
+
+            // Don't check further ADD blocks since those have already been evaluated
+            if (name == "ADD")
+            {
+                isCorrect = true;
+            }
+            // Checks if its a variable
+            if (name != "ADD" && isalpha(name[0]))
+            {
+                isCorrect = findInSymbolTable(hashNode, name);
+            }
+            // Checks if its a digit
+            else if (isdigit(name[0]))
+            {
+                isCorrect = true;
+            }
+
+            // If not successful, error/warning based on overarching statement
+            if (!isCorrect)
+            {
+                cout << statement->getName() << endl;
+                string overallBranchName = statement->getName();
+                if (overallBranchName == "Print Statement" || overallBranchName == "Assignment Statement" ||
+                    overallBranchName == "isEq" || overallBranchName == "isNotEq")
+                {
+                    log("ERROR", "Use of undeclared variable '" + name + "' at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                    errorCount++;
+                }
+            }
+        }
+
+        // Finds a variable in symbol table starting at hashnode
+        bool findInSymbolTable(HashNode* node, string varName)
+        {
+            bool inTable = false;
+
+            // Finds the variable (if it exists)
+            while (!inTable && node != nullptr)
+            {
+                inTable = node->exists(varName);
+                node = node->getParent();
+            }
+
+            return inTable;
         }
 
         // Format the nodes from the IF/WHILE statements
