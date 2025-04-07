@@ -381,7 +381,21 @@ class SemanticAnalyzer
                     if (successful)
                     {
                         type1 = correctNode->getType(name1);
-                        correctNode->setInitialized(name1);
+
+                        if (branchName == "Assignment Statement")
+                        {
+                            correctNode->setInitialized(name1);
+                        }
+                        else
+                        {
+                            correctNode->setUsed(name1);
+
+                            // Throw warning if it wasn't initialized yet
+                            if (!correctNode->checkInitialized(name1))
+                            {
+                                log("WARNING", "Using uninitialized variable " + name1 + " at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                            }
+                        }
                     }
                     else
                     {
@@ -400,7 +414,21 @@ class SemanticAnalyzer
                     if (successful)
                     {
                         type2 = correctNode->getType(name2);
-                        correctNode->setInitialized(name2);
+                        
+                        if (branchName == "Assignment Statement")
+                        {
+                            correctNode->setInitialized(name2);
+                        }
+                        else
+                        {
+                            correctNode->setUsed(name2);
+
+                            // Throw warning if it wasn't initialized yet
+                            if (!correctNode->checkInitialized(name2))
+                            {
+                                log("WARNING", "Using uninitialized variable " + name2 + " at (" + to_string(linkedToken2->getLine()) + ":" + to_string(linkedToken2->getColumn()) + ")");
+                            }
+                        }
                     }
                     else
                     {
@@ -473,14 +501,19 @@ class SemanticAnalyzer
             // Declare variable
             else if (branchName == "Var Decl")
             {
-                // Get information for both leaves
-                leaf1 = curBranch->getChild(0);
-                name1 = leaf1->getName();
+                // Get the variable name and its type
+                string type = curBranch->getChild(0)->getName();
+                string var = curBranch->getChild(1)->getName();
 
-                leaf2 = curBranch->getChild(1);
-                name2 = leaf2->getName();
+                // Add the hash value
+                successful = curHashNode->addValue(var, type);
 
-                curHashNode->addValue(name2, name1);
+                // If there was a collision, throw error
+                if (!successful)
+                {
+                    linkedToken1 = curBranch->getChild(0)->getToken();
+                    log("ERROR", "Redeclared identifier " + var + " at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
+                }
             }
 
             cout << curHashNode->getName() << endl;
@@ -550,12 +583,27 @@ class SemanticAnalyzer
                     errorCount++;
                 }
             }
-            // If the variable involved isn't an integer type, throw type error
-            else if (linkedToken->getType() == "ID" && correctNode->getType(name) != "int")
+            // If it was correct and a variable
+            else if (linkedToken->getType() == "ID")
             {
-                log("ERROR", "Type mismatch: Using " + correctNode->getType(name) + " variable [" + name + "] in integer expression at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
-                errorCount++;
-            }
+                // If the variable involved isn't an integer type, throw type error
+                if (correctNode->getType(name) != "int")
+                {
+                    log("ERROR", "Type mismatch: Using " + correctNode->getType(name) + " variable [" + name + "] in integer expression at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                    errorCount++;
+                }
+                // Set variable to used
+                if (overallBranchName == "Print Statement" || overallBranchName == "isEq" || overallBranchName == "isNotEq")
+                {
+                    correctNode->setUsed(name);
+
+                    // Throw warning if it wasn't initialized yet
+                    if (!correctNode->checkInitialized(name))
+                    {
+                        log("WARNING", "Using uninitialized variable " + name + " at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                    }
+                }
+            } 
         }
 
         // Finds a variable in symbol table starting at hashnode
