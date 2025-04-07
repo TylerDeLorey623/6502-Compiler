@@ -143,6 +143,53 @@ class HashNode
             return ifExists;
         } 
 
+        // Print out every value of all hash tables
+        void printCurrentHash()
+        {
+            for (const auto& val : hashTable)
+            {
+                string name = val.first;
+                string type = val.second.type;
+                string initialized = "true";
+                if (!val.second.isInitialized)
+                {
+                    initialized = "false";
+                }
+                string used = "true";
+                if (!val.second.isUsed)
+                {
+                    used = "false";
+                }
+                string scope = getName();
+
+                // Format the string to look nice
+                int spaces = 8;
+                string completeString = name;
+                for (int i = 0; i < spaces + 4 - name.size(); i++)
+                {
+                    completeString += " ";
+                }
+                completeString += type;
+                for (int i = 0; i < spaces + 4 - type.size(); i++)
+                {
+                    completeString += " ";
+                }
+                completeString += initialized;
+                for (int i = 0; i < spaces + 7 - initialized.size(); i++)
+                {
+                    completeString += " ";
+                }
+                completeString += used;
+                for (int i = 0; i < spaces + 7 - used.size(); i++)
+                {
+                    completeString += " ";
+                }
+                completeString += scope;
+
+                log("INFO", completeString);
+            }
+        }
+
     private:
         // Creates a struct that stores object information for each value in hash table
         struct hashObject
