@@ -60,6 +60,12 @@ class Tree
             }
         }
 
+        // Setter for current node (used in very specific edge case where bool expression is at the end of the program)
+        void setCurrent(Node* node)
+        {
+            this->current = node;
+        }
+
         // Getter for the root Node
         Node* getRoot()
         {
