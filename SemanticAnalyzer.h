@@ -60,6 +60,14 @@ class SemanticAnalyzer
         {
             log("INFO", "Semantic Analysis for Program #" + to_string(programNumber));
             inorder(programCST->getRoot(), 0);
+
+            // If nodes never stopped collecting, add them to AST at the end
+            if (collectNodes) 
+            {
+                collectNodes = false;
+                myAST->setCurrent(myAST->getMostRecentNode()->getParent());
+                formatNodes();
+            }
         }
 
         // Traverse Symbol Table to find more warnings
@@ -115,8 +123,6 @@ class SemanticAnalyzer
         vector<Token*> tokenCollect;
         int oldDepth = 0;
         string equalitySign = "UNKNOWN";
-        bool isComparison = false;
-        bool computeComparison = false; 
 
         // ADD branch
         int add = 0;
@@ -165,25 +171,6 @@ class SemanticAnalyzer
             {
                 // Get leaf name
                 string lName = node->getName();
-
-                // To deal with boolean comparisons, collect nodes when inside (Expr boolop Expr)
-                if (isComparison && lName == "(")
-                {
-                    nodeNames.clear();
-                    collectNodes = true;
-                    oldDepth = depth;
-                }
-                else if (collectNodes && lName == ")" && depth == oldDepth)
-                {
-                    for (int i = 0; i < nodeNames.size(); i++)
-                    {
-                        cout << nodeNames[i] << endl;
-                    }
-                    collectNodes = false;
-                    formatNodes();
-                }
-
-                isComparison = false;
 
                 // Check if leaf is important
                 if (lName != "{" && lName != "}" && lName != "print" && lName != "while" && lName != "if" && lName != "(" && 
@@ -251,18 +238,19 @@ class SemanticAnalyzer
             {
                 string bName = node->getName();
 
-                // Note Bool Expr for alternate tree structure
-                if (bName == "Boolean Expr")
-                {
-                    isComparison = true;
-                }
-
                 // Check if branch is important
                 bool important = false;
                 if (bName == "Block" || bName == "Print Statement" || bName == "Assignment Statement" || bName == "Var Decl" ||
                     bName == "While Statement" || bName == "If Statement")
                 {
                     important = true;
+
+                    // If BoolExpr ends, stop collecting nodes and add stored nodes to the AST
+                    if (collectNodes && depth <= oldDepth)
+                    {
+                        collectNodes = false;
+                        formatNodes();
+                    }
 
                     // Add branch from the CST to the AST
                     if (!collectNodes)
@@ -276,6 +264,15 @@ class SemanticAnalyzer
                             mySym->addHashNode(to_string(currentScope) + getScopeSubValue(currentScope));
                         }
                     }
+                }
+                // Note Bool Expr for alternate tree structure
+                // To deal with boolean comparisons, collect nodes when inside (Expr boolop Expr)
+                else if (bName == "Boolean Expr" && node->getChildren().size() > 1)
+                {
+                    nodeNames.clear();
+                    clearTokens();
+                    collectNodes = true;
+                    oldDepth = depth;
                 }
                 // Tree structure is different for ADD blocks
                 else if (bName == "Int Expr" && node->getChildren().size() > 1)
@@ -406,9 +403,18 @@ class SemanticAnalyzer
                 name1 = leaf1->getName();
                 linkedToken1 = leaf1->getToken();
 
-                leaf2 = curBranch->getChild(1);
-                name2 = leaf2->getName();
-                linkedToken2 = leaf2->getToken();
+                if (curBranch->getChildren().size() >= 2)
+                {
+                    leaf2 = curBranch->getChild(1);
+                    name2 = leaf2->getName();
+                    linkedToken2 = leaf2->getToken();
+                }
+                else
+                {
+                    leaf2 = curBranch->getChild(0);
+                    name2 = leaf1->getName();
+                    linkedToken2 = leaf1->getToken();
+                }
 
                 // Scope check the identifier
                 if (name1 != "ADD" && linkedToken1->getType() == "ID")
@@ -416,11 +422,13 @@ class SemanticAnalyzer
                     correctNode = findInSymbolTable(curHashNode, name1);
                     successful = correctNode;
 
+                    // If variable is in symbol table, get its type and set it to initialized or used
                     if (successful)
                     {
                         type1 = correctNode->getType(name1);
                         correctNode->setLineAndColumn(name1, linkedToken1->getLine(), linkedToken1->getColumn());
 
+                        // If it is a comparison, set it to used
                         if (branchName != "Assignment Statement")
                         {
                             correctNode->setUsed(name1);
@@ -432,6 +440,7 @@ class SemanticAnalyzer
                             }
                         }
                     }
+                    // If variable wasn't in symbol table, throw undeclared variable error
                     else
                     {
                         log("ERROR", "Use of undeclared variable '" + name1 + "' at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
@@ -446,11 +455,13 @@ class SemanticAnalyzer
                     correctNode = findInSymbolTable(curHashNode, name2);
                     successful = correctNode;
 
+                    // If variable is in symbol table, get its type
                     if (successful)
                     {
                         type2 = correctNode->getType(name2);
                         correctNode->setLineAndColumn(name2, linkedToken2->getLine(), linkedToken2->getColumn());
                         
+                        // Set assigned variable to initialized
                         if (branchName == "Assignment Statement")
                         {
                             // Give warning if assigning variable to the same uninitialized variable 
@@ -459,7 +470,6 @@ class SemanticAnalyzer
                                 log("WARNING", "Initialized variable [" + name2 + "] with itself at (" + to_string(linkedToken1->getLine()) + ":" + to_string(linkedToken1->getColumn()) + ")");
                                 warningCount++;
                             }
-                            correctNode->setInitialized(name1);
                         }
                         else
                         {
@@ -483,6 +493,12 @@ class SemanticAnalyzer
                 // Type checking
                 if (noErrors)
                 {
+                    // Set assigned variable to initialized
+                    if (branchName == "Assignment Statement" && name1 != "ADD")
+                    {
+                        correctNode->setInitialized(name1);
+                    }
+
                     // Get type if it wasn't specified for the first ("ADD" and literals)
                     if (name1 == "ADD")
                     {
@@ -761,16 +777,7 @@ class SemanticAnalyzer
             // Reset nodes
             equalitySign = "UNKNOWN";
             nodeNames.clear();
-
-            // Delete all extra unnecessary Tokens and clear the Token List
-            for (int i = 0, n = tokenCollect.size(); i < n; i++)
-            {
-                if (tokenCollect[i]->getType() == "UNKNOWN")
-                {
-                    delete(tokenCollect[i]);
-                }
-            }
-            tokenCollect.clear();
+            clearTokens();
         }
 
         // Gets the subvalue of a scope (Scope 1 may have 1a, 1b, etc)
@@ -906,6 +913,19 @@ class SemanticAnalyzer
                     expand(curNode->getChild(i), depth + 1);
                 }
             }
+        }
+
+        // Delete all extra unnecessary Tokens and clear the Token List
+        void clearTokens()
+        {
+            for (int i = 0, n = tokenCollect.size(); i < n; i++)
+            {
+                if (tokenCollect[i]->getType() == "UNKNOWN")
+                {
+                    delete(tokenCollect[i]);
+                }
+            }
+            tokenCollect.clear();
         }
 
 
