@@ -115,8 +115,8 @@ class SemanticAnalyzer
         vector<Token*> tokenCollect;
         int oldDepth = 0;
         string equalitySign = "UNKNOWN";
-        bool inComparison = false;
-        bool isComparison = true; 
+        bool isComparison = false;
+        bool computeComparison = false; 
 
         // ADD branch
         int add = 0;
@@ -166,25 +166,24 @@ class SemanticAnalyzer
                 // Get leaf name
                 string lName = node->getName();
 
-                // Making sure parenthesis from print statement don't count as comparison
-                if (lName == "print")
+                // To deal with boolean comparisons, collect nodes when inside (Expr boolop Expr)
+                if (isComparison && lName == "(")
                 {
-                    isComparison = false;
+                    nodeNames.clear();
+                    collectNodes = true;
+                    oldDepth = depth;
                 }
-                else if (lName == ")")
+                else if (collectNodes && lName == ")" && depth == oldDepth)
                 {
-                    inComparison = false;
-                    isComparison = true;
+                    for (int i = 0; i < nodeNames.size(); i++)
+                    {
+                        cout << nodeNames[i] << endl;
+                    }
+                    collectNodes = false;
+                    formatNodes();
                 }
 
-                // Marking for when inside parenthesis for edge case dealing with boolean comparison
-                if (isComparison)
-                {
-                    if (lName == "(")
-                    {
-                        inComparison = true;
-                    }
-                }
+                isComparison = false;
 
                 // Check if leaf is important
                 if (lName != "{" && lName != "}" && lName != "print" && lName != "while" && lName != "if" && lName != "(" && 
@@ -209,7 +208,7 @@ class SemanticAnalyzer
                         else if (!inQuotes && collectNodes)
                         {
                             nodeNames.emplace_back(currentString);
-                            tokenCollect.emplace_back(currentToken);
+                            tokenCollect.emplace_back(heldToken);
                         }
                         // If just got into the quotes, clear the string that will be overwritten and get token that will be linked
                         else 
@@ -223,15 +222,7 @@ class SemanticAnalyzer
                     {
                         currentString += lName;
                     }
-                    // Stop collecting nodes if its just a if/while statement with either true/false (not an expression)
-                    else if (collectNodes && !inComparison && (lName == "true" || lName == "false"))
-                    {
-                        collectNodes = false;
-                        nodeNames.clear();
-                        myAST->addNode("leaf", lName);
-                        myAST->getMostRecentNode()->linkToken(currentToken);
-                    }
-                    // Collect node if they need to be collected for if and while statement
+                    // Collect node if they need to be collected for boolean expressions
                     else if (collectNodes)
                     {
                         // Note equality sign if there is one
@@ -258,32 +249,23 @@ class SemanticAnalyzer
             // If not linked, is a branch node, add if important
             else
             {
+                string bName = node->getName();
+
+                // Note Bool Expr for alternate tree structure
+                if (bName == "Boolean Expr")
+                {
+                    isComparison = true;
+                }
+
                 // Check if branch is important
                 bool important = false;
-                string bName = node->getName();
                 if (bName == "Block" || bName == "Print Statement" || bName == "Assignment Statement" || bName == "Var Decl" ||
                     bName == "While Statement" || bName == "If Statement")
                 {
                     important = true;
 
-                    // Tree structure is different for IF and WHILE statements, start collecting nodes to add to vector
-                    if (!collectNodes && (bName == "While Statement" || bName == "If Statement"))
-                    {
-                        collectNodes = true;
-                        oldDepth = depth;
-
-                        myAST->addNode("branch", bName);
-                    }
-                    // If in collecting mode and the statement is finished, stop collecting and add nodes in proper order
-                    else if (collectNodes && oldDepth == depth - 1)
-                    {
-                        collectNodes = false;
-                        nodeNames.emplace_back(bName);
-                        tokenCollect.emplace_back(new Token());
-                        formatNodes();
-                    }
-                    // Add the branch node to the AST (follow CST structure)
-                    else
+                    // Add branch from the CST to the AST
+                    if (!collectNodes)
                     {
                         myAST->addNode("branch", bName);
 
@@ -750,23 +732,6 @@ class SemanticAnalyzer
                     ifWhileAdd++;
                     myAST->addNode("branch", name);
                 }
-                // If it was a Block, nodeNames should be completed, move up tree, add node, and exit loop
-                else if (name == "Block")
-                {
-                    // Move up tree more if there was ADD
-                    while (ifWhileAdd > 0)
-                    {
-                        ifWhileAdd--;
-                        symbolAndMove();
-                    }
-                    symbolAndMove();
-                    myAST->addNode("branch", name);
-
-                    // Change scope
-                    currentScope++;
-                    mySym->addHashNode(to_string(currentScope) + getScopeSubValue(currentScope));
-                    continue;
-                }
                 // If its a regular value, add a leaf node
                 else if (name != "==" && name != "!=")
                 {
@@ -783,6 +748,15 @@ class SemanticAnalyzer
                     }
                 }
             }
+
+            // Move up tree more if there was ADD
+            while (ifWhileAdd > 0)
+            {
+                ifWhileAdd--;
+                symbolAndMove();
+            }
+
+            symbolAndMove();
 
             // Reset nodes
             equalitySign = "UNKNOWN";
