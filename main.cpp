@@ -98,23 +98,11 @@ int main(int argc, char* argv[])
         currentAnalyzer.generate();
         currentAnalyzer.traverseSymbolTable();
 
-        errors = currentAnalyzer.getErrors();
-
         cout << endl;
-
-        // AST
-        if (errors > 0)
-        {
-            log("INFO", "AST for Program #" + to_string(i + 1) + " skipped due to Semantic Analysis error(s)");
-            currentParse.deleteCST();
-            currentAnalyzer.deleteAST();
-            currentAnalyzer.deleteSymbolTable();
-            continue;
-        }
-
         currentAnalyzer.printAST();
-        cout << endl;
         currentAnalyzer.printSymbolTable();
+
+        errors = currentAnalyzer.getErrors();
 
         // CODE GEN
 
