@@ -59,15 +59,7 @@ class SemanticAnalyzer
         void generate()
         {
             log("INFO", "Semantic Analysis for Program #" + to_string(programNumber));
-            inorder(programCST->getRoot(), 0);
-
-            // If nodes never stopped collecting, add them to AST at the end
-            if (collectNodes) 
-            {
-                collectNodes = false;
-                myAST->setCurrent(myAST->getMostRecentNode()->getParent());
-                formatNodes();
-            }
+            inorder(programCST->getRoot());
         }
 
         // Traverse Symbol Table to find more warnings
@@ -113,25 +105,6 @@ class SemanticAnalyzer
         int currentScope = -1;
         vector<string> subVals;
 
-        // Converting strings into a single leaf node
-        bool inQuotes = false;
-        string currentString;
-
-        // IF/WHILE branch
-        bool collectNodes = false;
-        vector<string> nodeNames;
-        vector<Token*> tokenCollect;
-        int oldDepth = 0;
-        string equalitySign = "UNKNOWN";
-
-        // ADD branch
-        int add = 0;
-        int ifWhileAdd = 0;
-
-        // For leaf nodes
-        Token* currentToken;
-        Token* heldToken;
-
         int errorCount = 0;
         int warningCount = 0;
 
@@ -164,154 +137,197 @@ class SemanticAnalyzer
         }
 
         // In-order traversal of the CST to create the AST
-        void inorder(Node *node, int depth)
+        void inorder(Node *node)
         {
-            // If linked, is a leaf node, add if important
-            if (node->isTokenLinked())
+            // Makes sure node is not a nullptr
+            if (!node)
             {
-                // Get leaf name
-                string lName = node->getName();
-
-                // Check if leaf is important
-                if (lName != "{" && lName != "}" && lName != "print" && lName != "while" && lName != "if" && lName != "(" && 
-                    lName != ")" && lName != "=" && lName != "$" && lName != "+")
-                {
-                    // Get the linked token
-                    currentToken = node->getToken(); 
-
-                    // Concatenate characters to make a string if looking at chars
-                    if (lName == "\"") 
-                    {
-                        // Toggle quote state
-                        inQuotes = !inQuotes;
-                        
-                        // If just got out of quotes, add the string to the Tree and link the held token
-                        if (!inQuotes && !collectNodes) 
-                        {
-                            myAST->addNode("leaf", currentString);
-                            myAST->getMostRecentNode()->linkToken(heldToken);
-                        } 
-                        // Collect node if they need to be collected for if and while statement
-                        else if (!inQuotes && collectNodes)
-                        {
-                            nodeNames.emplace_back(currentString);
-                            tokenCollect.emplace_back(heldToken);
-                        }
-                        // If just got into the quotes, clear the string that will be overwritten and get token that will be linked
-                        else 
-                        {
-                            heldToken = currentToken;
-                            currentString.clear();
-                        }
-                    }
-                    // If in quotes, add to the string, don't add a new Node 
-                    else if (inQuotes) 
-                    {
-                        currentString += lName;
-                    }
-                    // Collect node if they need to be collected for boolean expressions
-                    else if (collectNodes)
-                    {
-                        // Note equality sign if there is one
-                        if (lName == "==")
-                        {
-                            equalitySign = "isEq";
-                        }
-                        else if (lName == "!=")
-                        {
-                            equalitySign = "isNotEq";
-                        }
-
-                        nodeNames.emplace_back(lName);
-                        tokenCollect.emplace_back(currentToken);
-                    }
-                    // Base case: Add the leaf node to the tree and link token
-                    else 
-                    {
-                        myAST->addNode("leaf", lName);
-                        myAST->getMostRecentNode()->linkToken(currentToken);
-                    }
-                }
+                return;
             }
-            // If not linked, is a branch node, add if important
-            else
+
+            // Get the name of the Node
+            string name = node->getName();
+
+            // Checks if current Node is a branch
+            if (!node->isTokenLinked())
             {
-                string bName = node->getName();
-
-                // Check if branch is important
-                bool important = false;
-                if (bName == "Block" || bName == "Print Statement" || bName == "Assignment Statement" || bName == "Var Decl" ||
-                    bName == "While Statement" || bName == "If Statement")
+                // Entire IF statement does some logic depending on name of branch, usually involving recursively calling its child Nodes
+                if (name == "Program")
                 {
-                    important = true;
-
-                    // If BoolExpr ends, stop collecting nodes and add stored nodes to the AST
-                    if (collectNodes && depth <= oldDepth)
+                    // Block
+                    inorder(node->getChild(0));
+                }
+                else if (name == "Block")
+                {
+                    // Create new scope
+                    currentScope++;
+                    mySym->addHashNode(to_string(currentScope) + getScopeSubValue(currentScope));
+                    
+                    // Add node to AST
+                    myAST->addNode("branch", "Block");
+                    inorder(node->getChild(1));
+                    symbolAndMove();
+                }
+                else if (name == "Statement List")
+                {
+                    // If it wasn't an epsilon production
+                    if (node->getChildren().size() != 0)
                     {
-                        collectNodes = false;
-                        formatNodes();
-                    }
+                        // Statement
+                        inorder(node->getChild(0));
 
-                    // Add branch from the CST to the AST
-                    if (!collectNodes)
-                    {
-                        myAST->addNode("branch", bName);
-
-                        // If its a block, create a new node on the symbol table
-                        if (bName == "Block")
-                        {
-                            currentScope++;
-                            mySym->addHashNode(to_string(currentScope) + getScopeSubValue(currentScope));
-                        }
+                        // Statement List
+                        inorder(node->getChild(1));
                     }
                 }
-                // Note Bool Expr for alternate tree structure
-                // To deal with boolean comparisons, collect nodes when inside (Expr boolop Expr)
-                else if (bName == "Boolean Expr" && node->getChildren().size() > 1)
+                else if (name == "Statement")
                 {
-                    nodeNames.clear();
-                    clearTokens();
-                    collectNodes = true;
-                    oldDepth = depth;
+                    // Type of Statement
+                    inorder(node->getChild(0));
                 }
-                // Tree structure is different for ADD blocks
-                else if (bName == "Int Expr" && node->getChildren().size() > 1)
+                else if (name == "Print Statement")
                 {
-                    // If in collecting mode, collect the node (add a branch if not)
-                    if (collectNodes)
-                    {
-                        nodeNames.emplace_back("ADD");
-                        tokenCollect.emplace_back(new Token());
-                    }
-                    else
-                    {
-                        // Add an add branch
-                        add++;
-                        myAST->addNode("branch", "ADD");
-                    }
-                }
+                    // Add print Node
+                    myAST->addNode("branch", "Print");
 
-                // Recursively expand the branches
-                for (int i = 0, childrenSize = node->getChildren().size(); i < childrenSize; i++)
-                {
-                    inorder(node->getChild(i), depth + 1);
-                }
-
-                // Move up if the branch was important
-                if (important)
-                {
-                    important = false;
-
-                    // Move up more if it was an ADD branch
-                    while (add > 0)
-                    {
-                        add--;
-                        symbolAndMove();
-                    }
+                    // Expr
+                    inorder(node->getChild(2));
 
                     symbolAndMove();
                 }
+                else if (name == "Assignment Statement")
+                {
+                    // Add assignment Node
+                    myAST->addNode("branch", "Assign");
+
+                    // ID
+                    inorder(node->getChild(0));
+
+                    // EXPR
+                    inorder(node->getChild(2));
+
+                    symbolAndMove();
+                }
+                else if (name == "Var Decl")
+                {
+                    // Add var decl Node
+                    myAST->addNode("branch", "Declare");
+
+                    // Type
+                    inorder(node->getChild(0));
+
+                    // ID
+                    inorder(node->getChild(1));
+
+                    symbolAndMove();
+                }
+                // Same logic for if/while statements
+                else if (name == "If Statement" || name == "While Statement")
+                {
+                    // Add if/while Node
+                    myAST->addNode("branch", name);
+
+                    // Boolean Expr
+                    inorder(node->getChild(1));
+
+                    // Block
+                    inorder(node->getChild(2));
+
+                    symbolAndMove();
+                }
+                else if (name == "Expr")
+                {
+                    // Type of Expr
+                    inorder(node->getChild(0));
+                }
+                else if (name == "Int Expr")
+                {
+                    // Determines whether IntExpr is...
+                    // digit intop Expr
+                    // or
+                    // digit
+                    if (node->getChildren().size() == 3)
+                    {
+                        // ADD branch
+                        myAST->addNode("branch", "ADD");
+
+                        // digit
+                        inorder(node->getChild(0));
+
+                        // Expr
+                        inorder(node->getChild(2));
+
+                        symbolAndMove();
+                    }
+                    else
+                    {
+                        // digit
+                        inorder(node->getChild(0));
+                    }
+                }
+                else if (name == "String Expr")
+                {
+                    // CharList
+                    inorder(node->getChild(1));
+                }
+                else if (name == "Boolean Expr")
+                {
+                    // Determines whether BooleanExpr is...
+                    // (Expr boolop Expr)
+                    // or
+                    // boolval
+                    if (node->getChildren().size() == 5)
+                    {
+                        // Add a node based on equality sign (== or !=)
+                        if (node->getChild(2)->getName() == "==")
+                        {
+                            myAST->addNode("branch", "isEq");
+                        }
+                        else
+                        {
+                            myAST->addNode("branch", "isNotEq");
+                        }
+
+                        // Expr
+                        inorder(node->getChild(1));
+
+                        // Expr
+                        inorder(node->getChild(3));
+
+                        symbolAndMove();
+                    }
+                    else
+                    {
+                        // boolval
+                        inorder(node->getChild(0));
+                    }
+                }
+                else if (name == "Id")
+                {
+                    // char
+                    inorder(node->getChild(0));
+                }
+                else if (name == "Char List")
+                {
+                    // If it wasn't an epsilon production
+                    if (node->getChildren().size() != 0)
+                    {
+                        // char or space
+                        inorder(node->getChild(0));
+
+                        // CharList
+                        inorder(node->getChild(0));
+                    }
+                }
             }
+            // If the current Node is a leaf node, add it to AST and link the correct Token
+            else
+            {
+                Token* currentToken = node->getToken();
+                myAST->addNode("leaf", node->getName());
+                myAST->getMostRecentNode()->linkToken(currentToken);
+            }
+
         }
 
         // Two functions are called whenever moving branch up
@@ -319,7 +335,7 @@ class SemanticAnalyzer
         // Second deals with moving current node up the AST  
         void symbolAndMove()
         {
-            semanticCheck();
+            //semanticCheck();
             myAST->moveUp();
         }
 
@@ -409,6 +425,7 @@ class SemanticAnalyzer
                     name2 = leaf2->getName();
                     linkedToken2 = leaf2->getToken();
                 }
+                // FIX THIS
                 else
                 {
                     leaf2 = curBranch->getChild(0);
@@ -731,55 +748,6 @@ class SemanticAnalyzer
             return node;
         }
 
-        // Format the nodes from the IF/WHILE statements
-        void formatNodes()
-        {
-            myAST->addNode("branch", equalitySign);
-
-            // Iterate through stored nodes
-            for (int i = 0; i < nodeNames.size(); i++)
-            {
-                string name = nodeNames[i];
-                Token* curToken = tokenCollect[i];
-                
-                // If its an add, add a new branch
-                if (name == "ADD")
-                {
-                    ifWhileAdd++;
-                    myAST->addNode("branch", name);
-                }
-                // If its a regular value, add a leaf node
-                else if (name != "==" && name != "!=")
-                {
-                    myAST->addNode("leaf", name);
-                    myAST->getMostRecentNode()->linkToken(curToken);
-                }
-                // If its an equality sign, move up the tree if there were ADDs and continue
-                else
-                {
-                    while (ifWhileAdd > 0)
-                    {
-                        ifWhileAdd--;
-                        symbolAndMove();
-                    }
-                }
-            }
-
-            // Move up tree more if there was ADD
-            while (ifWhileAdd > 0)
-            {
-                ifWhileAdd--;
-                symbolAndMove();
-            }
-
-            symbolAndMove();
-
-            // Reset nodes
-            equalitySign = "UNKNOWN";
-            nodeNames.clear();
-            clearTokens();
-        }
-
         // Gets the subvalue of a scope (Scope 1 may have 1a, 1b, etc)
         string getScopeSubValue(int scopeVal)
         {
@@ -914,20 +882,6 @@ class SemanticAnalyzer
                 }
             }
         }
-
-        // Delete all extra unnecessary Tokens and clear the Token List
-        void clearTokens()
-        {
-            for (int i = 0, n = tokenCollect.size(); i < n; i++)
-            {
-                if (tokenCollect[i]->getType() == "UNKNOWN")
-                {
-                    delete(tokenCollect[i]);
-                }
-            }
-            tokenCollect.clear();
-        }
-
 
         // Logging function for Analyzer
         void log(const string type, const string message)
