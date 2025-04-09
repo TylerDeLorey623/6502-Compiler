@@ -29,13 +29,17 @@ class HashNode
         int warningCheck()
         {
             int warningCount = 0;
+
+            // Loop through all hashes in this Node of the symbol table
             for (const auto& val : hashTable)
             {
+                // Declared but not initialized
                 if (!val.second.isInitialized)
                 {
                     log("WARNING", val.second.type + " [" + val.first + "] is declared at (" + to_string(getLine(val.first)) + ":" + to_string(getColumn(val.first)) + "), but never initialized");
                     warningCount++;
                 }
+                // Initialized but not used
                 else if (!val.second.isUsed)
                 {
                     log("WARNING", val.second.type + " [" + val.first + "] is initialized at (" + to_string(getLine(val.first)) + ":" + to_string(getColumn(val.first)) + "), but never used");
