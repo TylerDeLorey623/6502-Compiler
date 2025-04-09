@@ -502,8 +502,9 @@ class SemanticAnalyzer
             // If variable exists
             if (correctNode)
             {
-                // Set it to initialized
+                // Set it to initialized and link token
                 correctNode->setInitialized(targetName);
+                correctNode->setLineAndColumn(targetName, targetToken->getLine(), targetToken->getColumn());
 
                 // Get types of both AST Nodes
                 string targetType = getType(targetNode);
@@ -559,6 +560,11 @@ class SemanticAnalyzer
                 log("ERROR", "Redeclared variable [" + name + "] at (" + to_string(token->getLine()) + ":" + to_string(token->getColumn()) + ")");
                 errorCount++;
             }
+            // Link tokens otherwise if creation was successful
+            else
+            {
+                curHashNode->setLineAndColumn(name, token->getLine(), token->getColumn());
+            }
         }
 
         // SCOPE/TYPE CHECKING FOR ADD STATEMENTS
@@ -595,7 +601,7 @@ class SemanticAnalyzer
                     if (correctNode)
                     {
                         // Set it to used
-                        correctNode->setInitialized(secondName);
+                        correctNode->setUsed(secondName);
                     }
                 }
                 // If not an identifier, it's a literal
@@ -666,7 +672,7 @@ class SemanticAnalyzer
                     if (correctNode)
                     {
                         // Set it to used
-                        correctNode->setInitialized(firstName);
+                        correctNode->setUsed(firstName);
                     }
                 }
                 // If not an identifier, it's a literal
@@ -703,7 +709,7 @@ class SemanticAnalyzer
                     if (correctNode)
                     {
                         // Set it to used
-                        correctNode->setInitialized(secondName);
+                        correctNode->setUsed(secondName);
                     }
                 }
                 // If not an identifier, it's a literal
@@ -1232,7 +1238,7 @@ class SemanticAnalyzer
         void traverseST(HashNode* node)
         {
             // Check each hash at this scope
-            //warningCount += node->warningCheck();
+            warningCount += node->warningCheck();
 
             // Recursively expand the branches
             for (int i = 0, childrenSize = node->getChildren().size(); i < childrenSize; i++)
