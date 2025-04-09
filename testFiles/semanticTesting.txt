@@ -1,0 +1,23 @@
+{
+    string a
+    int b 
+    boolean c
+
+    if (("lal" == c) != (c == a))
+    {
+        print(c)
+    }
+
+    a = "hello world"
+
+    b = 1 + b
+
+    if (c == (c == true))
+    {
+        boolean d
+        d = false
+        print(b)
+        c = (false == true)
+    }
+    print(a)
+}$

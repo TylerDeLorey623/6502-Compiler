@@ -1,0 +1,15 @@
+/* Types do not match in Boolean comparison*/
+{
+if(4 == false){
+print("this no good")
+}
+if(4 == "hey"){
+print("int to string")
+}
+if(false != "hey"){
+print("bool to string")
+}
+if(4 != 3){
+print("int to int")
+}
+}$

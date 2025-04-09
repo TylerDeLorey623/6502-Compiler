@@ -1,0 +1,5 @@
+/* Variables being used but not declared first */
+{
+int a
+b = 4
+}$

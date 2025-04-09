@@ -1,0 +1,5 @@
+/* A variable's type is not compatible with its assignment*/
+{
+string s
+s = 4 + 3
+}$

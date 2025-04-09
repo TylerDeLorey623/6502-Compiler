@@ -1,0 +1,9 @@
+/* Variables being declared again in same scope*/
+{
+int a
+{
+string a
+a = "this is fine"
+}
+boolean a /* this is not fine" */
+}$

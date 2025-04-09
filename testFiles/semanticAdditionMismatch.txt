@@ -1,0 +1,5 @@
+/* A digit is added to something other than a digit */
+{
+int a
+a = 4 + false
+}$
