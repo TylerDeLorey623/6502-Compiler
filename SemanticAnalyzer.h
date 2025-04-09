@@ -137,7 +137,7 @@ class SemanticAnalyzer
         }
 
         // In-order traversal of the CST to create the AST
-        void inorder(Node *node)
+        void inorder(Node* node)
         {
             // Makes sure node is not a nullptr
             if (!node)
@@ -145,7 +145,7 @@ class SemanticAnalyzer
                 return;
             }
 
-            // Get the name of the Node
+            // Get the name of the Node (will initially be nullptr)
             string name = node->getName();
 
             // Checks if current Node is a branch
@@ -166,7 +166,13 @@ class SemanticAnalyzer
                     // Add node to AST
                     myAST->addNode("branch", "Block");
                     inorder(node->getChild(1));
-                    symbolAndMove();
+
+                    // Move up the symbol table (and adjust scope)
+                    mySym->moveUp();
+                    currentScope--;
+
+                    // Move up AST
+                    myAST->moveUp();
                 }
                 else if (name == "Statement List")
                 {
@@ -192,8 +198,12 @@ class SemanticAnalyzer
 
                     // Expr
                     inorder(node->getChild(2));
+                    
+                    // Scope/type checking for print statements
+                    checkPrint();
 
-                    symbolAndMove();
+                    // Move up AST
+                    myAST->moveUp();
                 }
                 else if (name == "Assignment Statement")
                 {
@@ -206,7 +216,11 @@ class SemanticAnalyzer
                     // EXPR
                     inorder(node->getChild(2));
 
-                    symbolAndMove();
+                    // Scope/type checking for print statements
+                    checkAssignment();
+
+                    // Move up AST
+                    myAST->moveUp();
                 }
                 else if (name == "Var Decl")
                 {
@@ -219,13 +233,17 @@ class SemanticAnalyzer
                     // ID
                     inorder(node->getChild(1));
 
-                    symbolAndMove();
+                    // Scope/type checking for variable declaration statement
+                    checkVarDecl();
+
+                    // Move up AST
+                    myAST->moveUp();
                 }
                 // Same logic for if/while statements
                 else if (name == "If Statement" || name == "While Statement")
                 {
-                    // Add if/while Node
-                    myAST->addNode("branch", name);
+                    // Add if/while Node (branch name is just If or While)
+                    myAST->addNode("branch", name.erase(name.length() - 10, 10));
 
                     // Boolean Expr
                     inorder(node->getChild(1));
@@ -233,7 +251,8 @@ class SemanticAnalyzer
                     // Block
                     inorder(node->getChild(2));
 
-                    symbolAndMove();
+                    // Move up AST
+                    myAST->moveUp();
                 }
                 else if (name == "Expr")
                 {
@@ -257,7 +276,8 @@ class SemanticAnalyzer
                         // Expr
                         inorder(node->getChild(2));
 
-                        symbolAndMove();
+                        // Move up AST
+                        myAST->moveUp();
                     }
                     else
                     {
@@ -302,7 +322,8 @@ class SemanticAnalyzer
                         // Expr
                         inorder(node->getChild(3));
 
-                        symbolAndMove();
+                        // Move up AST
+                        myAST->moveUp();
                     }
                     else
                     {
@@ -351,13 +372,184 @@ class SemanticAnalyzer
             collectCharNodes(node->getChild(1), token, result);
         }
 
-        // Two functions are called whenever moving branch up
-        // First deals with symbol table scope/type checking
-        // Second deals with moving current node up the AST  
-        void symbolAndMove()
+        // Returns the type of a certain node
+        string getType(Node* node)
         {
-            //semanticCheck();
-            myAST->moveUp();
+            string type = "UNKNOWN";
+            string name = node->getName();
+
+            // If node is a leaf, look for keywords
+            if (node->isTokenLinked())
+            {
+                string tokenType = node->getToken()->getType();
+                Token* linkedToken = node->getToken();
+                
+                // If it is an identifier, look up symbol table
+                if (tokenType == "ID")
+                {
+                    // Get information about identifier
+                    HashNode* curHashNode = mySym->getCurrentHashNode();
+                    
+                    // Find this identifier in the symbol table and get its type
+                    // If the identifier wasn't found, error would be thrown in the corresponding check function
+                    HashNode* correctNode = findInSymbolTable(curHashNode, node->getName());
+                    if (correctNode)
+                    {
+                        type = correctNode->getType(name);
+                    }
+                }
+                // Check if its a string literal
+                else if (tokenType == "CHAR")
+                {
+                    type = "string";
+                } 
+                // Check if its an integer literal
+                else if (tokenType == "DIGIT")
+                {
+                    type = "int";
+                }
+                // Check if its a boolean literal
+                else if (tokenType == "BOOL_VAL")
+                {
+                    type = "boolean";
+                }
+            }
+            // If node is a branch, check branch types
+            else
+            {
+                // Check if it's an integer expression
+                if (name == "ADD")
+                {
+                    type = "int";
+                }
+                // Check if it's a boolean expression 
+                else if (name == "isEq" || name == "isNotEq")
+                {
+                    type = "boolean";
+                }
+            }
+
+            return type;
+        }
+
+        // SCOPE/TYPE CHECKING FOR PRINT STATEMENTS
+        void checkPrint()
+        {
+            // Get information about the current HashNode
+            HashNode* curHashNode = mySym->getCurrentHashNode();
+
+            // Get information about the current branch of AST for scope/type checking
+            Node* currentBranch = myAST->getCurrentBranch();
+            Node* child = currentBranch->getChild(0);
+            string childName = child->getName();
+            Token* linkedToken = child->getToken();
+
+            // Checks to see if printing a variable 
+            if (linkedToken->getType() == "ID")
+            {
+                // Find this variable in the symbol table
+                HashNode* correctNode = findInSymbolTable(curHashNode, childName);
+
+                // If variable exists, set it to used
+                if (correctNode)
+                {
+                    correctNode->setUsed(childName);
+                }
+                // If it was not found, throw 'use of undeclared variable' error
+                else
+                {
+                    log("ERROR", "Use of undeclared variable '" + childName + "' at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + ")");
+                    errorCount++;
+                }
+            }
+        }
+
+        // SCOPE/TYPE CHECKING FOR ASSIGNMENT STATEMENTS
+        void checkAssignment()
+        {
+            // Get information about the current HashNode and branch
+            HashNode* curHashNode = mySym->getCurrentHashNode();
+            Node* currentBranch = myAST->getCurrentBranch();
+
+            // Get information about the variable that is getting assigned
+            Node* targetNode = currentBranch->getChild(0);
+            string targetName = targetNode->getName();
+            Token* targetToken = targetNode->getToken();
+
+            // Get information about the value the target is getting assigned to
+            Node* valueNode = currentBranch->getChild(1);
+            string valueName = valueNode->getName();
+            Token* valueToken = nullptr;
+
+            // Check to see if value is a leaf node (being assigned directly to either a variable or literal)
+            if (valueNode->isTokenLinked())
+            {
+                valueToken = valueNode->getToken();
+            }
+
+            // Find the target variable in the symbol table
+            HashNode* correctNode = findInSymbolTable(curHashNode, targetName);
+
+            // If variable exists
+            if (correctNode)
+            {
+                // Set it to initialized
+                correctNode->setInitialized(targetName);
+
+                // Get types of both AST Nodes
+                string targetType = getType(targetNode);
+                string valueType = getType(valueNode);
+
+                // Throw type mismatch error if types don't match
+                if (targetType != valueType)
+                {
+                    // Type mismatch error when dealing with first ID and second ID
+                    if (targetToken->getType() == "ID" && valueToken && valueToken->getType() == "ID")
+                    {
+                        log("ERROR", "Type mismatch: Assigning " + valueType + " value [" + valueName + "] to " + targetType + " variable [" + targetName + "] at (" + to_string(targetToken->getLine()) + ":" + to_string(targetToken->getColumn()) + ")");
+                    }
+                    // Type mismatch error when dealing with first ID and second literal
+                    else if (valueToken)
+                    {
+                        log("ERROR", "Type mismatch: Assigning " + valueType + " literal [" + valueName + "] to " + targetType + " variable [" + targetName + "] at (" + to_string(targetToken->getLine()) + ":" + to_string(targetToken->getColumn()) + ")");
+                    }
+                    // Type mismatch error when dealing with first ID and second branch
+                    else
+                    {
+                        log("ERROR", "Type mismatch: Assigning " + valueType + " value to " + targetType + " variable [" + targetName + "] at (" + to_string(targetToken->getLine()) + ":" + to_string(targetToken->getColumn()) + ")");
+                    }
+                    errorCount++;
+                }
+            }
+            // If it was not found, throw 'use of undeclared variable' error
+            else
+            {
+                log("ERROR", "Use of undeclared variable '" + targetName + "' at (" + to_string(targetToken->getLine()) + ":" + to_string(targetToken->getColumn()) + ")");
+                errorCount++;
+            }
+        }
+
+        // SCOPE/TYPE CHECKING FOR VARIABLE DECLARATION STATEMENTS
+        void checkVarDecl()
+        {
+            // Get information about the current HashNode and branch
+            HashNode* curHashNode = mySym->getCurrentHashNode();
+            Node* currentBranch = myAST->getCurrentBranch();
+
+            // Get the variable type and its name
+            string type = currentBranch->getChild(0)->getName();
+            string name = currentBranch->getChild(1)->getName();
+            Token* token = currentBranch->getChild(0)->getToken();
+
+            // Add the hash value at the current HashNode
+            bool successful = curHashNode->addValue(name, type);
+
+            // If there was a collision, throw error
+            if (!successful)
+            {
+                log("ERROR", "Redeclared variable [" + name + "] at (" + to_string(token->getLine()) + ":" + to_string(token->getColumn()) + ")");
+                errorCount++;
+            }
         }
 
         // Does scope/type checking on the current branch
@@ -847,7 +1039,7 @@ class SemanticAnalyzer
         void traverseST(HashNode* node)
         {
             // Check each hash at this scope
-            warningCount += node->warningCheck();
+            //warningCount += node->warningCheck();
 
             // Recursively expand the branches
             for (int i = 0, childrenSize = node->getChildren().size(); i < childrenSize; i++)
