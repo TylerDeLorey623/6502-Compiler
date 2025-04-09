@@ -251,6 +251,9 @@ class SemanticAnalyzer
                     // Block
                     inorder(node->getChild(2));
 
+                    // There is no semantic scope/type checking done for the IF/WHILE statements themselves
+                    // but there will be for the boolean expr that they contain
+
                     // Move up AST
                     myAST->moveUp();
                 }
@@ -275,6 +278,9 @@ class SemanticAnalyzer
 
                         // Expr
                         inorder(node->getChild(2));
+
+                        // Scope/type checking for ADD statements
+                        checkADD();
 
                         // Move up AST
                         myAST->moveUp();
@@ -321,6 +327,9 @@ class SemanticAnalyzer
 
                         // Expr
                         inorder(node->getChild(3));
+
+                        // Scope/type checking for boolean expressions
+                        checkBool();
 
                         // Move up AST
                         myAST->moveUp();
@@ -548,6 +557,190 @@ class SemanticAnalyzer
             if (!successful)
             {
                 log("ERROR", "Redeclared variable [" + name + "] at (" + to_string(token->getLine()) + ":" + to_string(token->getColumn()) + ")");
+                errorCount++;
+            }
+        }
+
+        // SCOPE/TYPE CHECKING FOR ADD STATEMENTS
+        void checkADD()
+        {
+            // Get information about the current HashNode and branch
+            HashNode* curHashNode = mySym->getCurrentHashNode();
+            Node* currentBranch = myAST->getCurrentBranch();
+
+            // Get information about the first "number" in addition
+            Node* firstNode = currentBranch->getChild(0);
+            string firstName = firstNode->getName();
+            Token* firstToken = firstNode->getToken();
+
+            // Get information about the second "number" in addition
+            Node* secondNode = currentBranch->getChild(1);
+            string secondName = secondNode->getName();
+            Token* secondToken = nullptr;
+
+            bool successful = false;
+
+            // Check to see if second value is a leaf node (it would be another ADD branch otherwise for nested additions)
+            if (secondNode->isTokenLinked())
+            {
+                secondToken = secondNode->getToken();
+
+                // Check if the second "number" is an identifier
+                if (secondToken->getType() == "ID")
+                {
+                    HashNode* correctNode = findInSymbolTable(curHashNode, secondName);
+                    successful = correctNode;
+
+                    // If it was successful, set to used
+                    if (correctNode)
+                    {
+                        // Set it to used
+                        correctNode->setInitialized(secondName);
+                    }
+                }
+                // If not an identifier, it's a literal
+                else
+                {
+                    successful = true;
+                }
+            }
+            // If it's a branch, successful since the branch has already been analyzed
+            else
+            {
+                successful = true;
+            }
+
+            // If variable was found OR it branches again OR it's a literal, do type checking 
+            if (successful)
+            {
+                // Get types of both AST Nodes
+                string firstType = getType(firstNode);
+                string secondType = getType(secondNode);
+
+                // Throw type mismatch error if types aren't integers
+                if (firstType != "int")
+                {
+                    log("ERROR", "Type mismatch: Using " + firstType + " in int expression at (" + to_string(firstToken->getLine()) + ":" + to_string(firstToken->getColumn()) + ")");
+                    errorCount++;
+                }
+                else if (secondType != "int")
+                {
+                    log("ERROR", "Type mismatch: Using " + secondType + " in int expression at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + ")");
+                    errorCount++;
+                }
+            }
+            // If it was not found, throw 'use of undeclared variable' error
+            else
+            {
+                log("ERROR", "Use of undeclared variable '" + secondName + "' at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + ")");
+                errorCount++;
+            }
+        }
+
+        // SCOPE/TYPE CHECKING FOR BOOLEAN EXPRESSIONS
+        void checkBool()
+        {
+            // Get information about the current HashNode and branch
+            HashNode* curHashNode = mySym->getCurrentHashNode();
+            Node* currentBranch = myAST->getCurrentBranch();
+
+            // Get information about the first expression
+            Node* firstNode = currentBranch->getChild(0);
+            string firstName = firstNode->getName();
+            Token* firstToken = nullptr;
+
+            bool firstSuccessful = false;
+
+            // Check to see if first value is a leaf node (it would be another boolean expression branch otherwise for nested expressions)
+            if (firstNode->isTokenLinked())
+            {
+                firstToken = firstNode->getToken();
+
+                // Check if the second "number" is an identifier
+                if (firstToken->getType() == "ID")
+                {
+                    HashNode* correctNode = findInSymbolTable(curHashNode, firstName);
+                    firstSuccessful = correctNode;
+
+                    // If it was successful, set to used
+                    if (correctNode)
+                    {
+                        // Set it to used
+                        correctNode->setInitialized(firstName);
+                    }
+                }
+                // If not an identifier, it's a literal
+                else
+                {
+                    firstSuccessful = true;
+                }
+            }
+            // If it's a branch, successful since the branch has already been analyzed
+            else
+            {
+                firstSuccessful = true;
+            }
+
+            // Get information about the second expression
+            Node* secondNode = currentBranch->getChild(1);
+            string secondName = secondNode->getName();
+            Token* secondToken = nullptr;
+
+            bool secondSuccessful = false;
+
+            // Check to see if second value is a leaf node (it would be another boolean expression branch otherwise for nested expressions)
+            if (secondNode->isTokenLinked())
+            {
+                secondToken = secondNode->getToken();
+
+                // Check if the second "number" is an identifier
+                if (secondToken->getType() == "ID")
+                {
+                    HashNode* correctNode = findInSymbolTable(curHashNode, secondName);
+                    secondSuccessful = correctNode;
+
+                    // If it was successful, set to used
+                    if (correctNode)
+                    {
+                        // Set it to used
+                        correctNode->setInitialized(secondName);
+                    }
+                }
+                // If not an identifier, it's a literal
+                else
+                {
+                    secondSuccessful = true;
+                }
+            }
+            // If it's a branch, successful since the branch has already been analyzed
+            else
+            {
+                secondSuccessful = true;
+            }
+
+            // If variables were found OR they branch again OR they are literals, do type checking 
+            if (firstSuccessful && secondSuccessful)
+            {
+                // Get types of both AST Nodes
+                string firstType = getType(firstNode);
+                string secondType = getType(secondNode);
+
+                // Throw type mismatch error if types aren't integers
+                if (firstType != "boolean")
+                {
+                    log("ERROR", "Type mismatch: Using " + firstType + " in boolean expression at (" + to_string(firstToken->getLine()) + ":" + to_string(firstToken->getColumn()) + ")");
+                    errorCount++;
+                }
+                else if (secondType != "boolean")
+                {
+                    log("ERROR", "Type mismatch: Using " + secondType + " in boolean expression at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + ")");
+                    errorCount++;
+                }
+            }
+            // If it was not found, throw 'use of undeclared variable' error
+            else
+            {
+                log("ERROR", "Use of undeclared variable '" + secondName + "' at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + ")");
                 errorCount++;
             }
         }
