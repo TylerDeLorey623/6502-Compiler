@@ -265,10 +265,18 @@ class SemanticAnalyzer
                         inorder(node->getChild(0));
                     }
                 }
+                // String Expr is a bit different
+                // Collect all chars from the CharList to create the entire string
                 else if (name == "String Expr")
                 {
-                    // CharList
-                    inorder(node->getChild(1));
+                    // Gets the entire string from the child CharLists
+                    string result = "";
+                    Token* currentToken = nullptr;
+                    collectCharNodes(node->getChild(1), currentToken, result);
+                    
+                    // Add the string as a leaf node
+                    myAST->addNode("leaf", result);
+                    myAST->getMostRecentNode()->linkToken(currentToken);
                 }
                 else if (name == "Boolean Expr")
                 {
@@ -307,18 +315,6 @@ class SemanticAnalyzer
                     // char
                     inorder(node->getChild(0));
                 }
-                else if (name == "Char List")
-                {
-                    // If it wasn't an epsilon production
-                    if (node->getChildren().size() != 0)
-                    {
-                        // char or space
-                        inorder(node->getChild(0));
-
-                        // CharList
-                        inorder(node->getChild(0));
-                    }
-                }
             }
             // If the current Node is a leaf node, add it to AST and link the correct Token
             else
@@ -327,7 +323,32 @@ class SemanticAnalyzer
                 myAST->addNode("leaf", node->getName());
                 myAST->getMostRecentNode()->linkToken(currentToken);
             }
+        }
 
+        // Collect characters and format them into a single string
+        // Passing result and token by reference
+        void collectCharNodes(Node* node, Token*& token, string& result)
+        {
+            // Make sure it wasn't an epsilon production
+            if (!node)
+            {
+                return;
+            }
+
+            // Gets the character or space
+            string character = node->getChild(0)->getName();
+
+            // Link token if it hasn't been linked yet (will occur when first character is added to result)
+            if (!token)
+            {
+                token = node->getChild(0)->getToken();
+            }
+
+            // Add character or space to the result
+            result += character;
+
+            // Keep collecting CharLists
+            collectCharNodes(node->getChild(1), token, result);
         }
 
         // Two functions are called whenever moving branch up
