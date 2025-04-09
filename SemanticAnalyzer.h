@@ -459,10 +459,20 @@ class SemanticAnalyzer
                 // Find this variable in the symbol table
                 HashNode* correctNode = findInSymbolTable(curHashNode, childName);
 
-                // If variable exists, set it to used
+                // If variable exists, set it to used and link token
                 if (correctNode)
                 {
+                    // Set it to used
                     correctNode->setUsed(childName);
+
+                    // Throws warning if it was never initialized
+                    if (!correctNode->checkInitialized(childName))
+                    {
+                        log("WARNING", correctNode->getType(childName) + " [" + childName + "] is used at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + "), but never initialized");
+                        warningCount++;
+                    }
+
+                    correctNode->setLineAndColumn(childName, linkedToken->getLine(), linkedToken->getColumn());
                 }
                 // If it was not found, throw 'use of undeclared variable' error
                 else
@@ -597,11 +607,20 @@ class SemanticAnalyzer
                     HashNode* correctNode = findInSymbolTable(curHashNode, secondName);
                     successful = correctNode;
 
-                    // If it was successful, set to used
+                    // If it was successful, set to used and link token
                     if (correctNode)
                     {
                         // Set it to used
                         correctNode->setUsed(secondName);
+
+                        // Throws warning if it was never initialized
+                        if (!correctNode->checkInitialized(secondName))
+                        {
+                            log("WARNING", correctNode->getType(secondName) + " [" + secondName + "] is used at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + "), but never initialized");
+                            warningCount++;
+                        }
+
+                        correctNode->setLineAndColumn(secondName, secondToken->getLine(), secondToken->getColumn());
                     }
                 }
                 // If not an identifier, it's a literal
@@ -673,6 +692,15 @@ class SemanticAnalyzer
                     {
                         // Set it to used
                         correctNode->setUsed(firstName);
+
+                        // Throws warning if it was never initialized
+                        if (!correctNode->checkInitialized(firstName))
+                        {
+                            log("WARNING", correctNode->getType(firstName) + " [" + firstName + "] is used at (" + to_string(firstToken->getLine()) + ":" + to_string(firstToken->getColumn()) + "), but wasn't initialized");
+                            warningCount++;
+                        }
+
+                        correctNode->setLineAndColumn(firstName, firstToken->getLine(), firstToken->getColumn());
                     }
                 }
                 // If not an identifier, it's a literal
@@ -710,6 +738,15 @@ class SemanticAnalyzer
                     {
                         // Set it to used
                         correctNode->setUsed(secondName);
+
+                        // Throws warning if it was never initialized
+                        if (!correctNode->checkInitialized(secondName))
+                        {
+                            log("WARNING", correctNode->getType(secondName) + " [" + secondName + "] is used at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + "), but never initialized");
+                            warningCount++;
+                        }
+
+                        correctNode->setLineAndColumn(secondName, secondToken->getLine(), secondToken->getColumn());
                     }
                 }
                 // If not an identifier, it's a literal
@@ -731,15 +768,10 @@ class SemanticAnalyzer
                 string firstType = getType(firstNode);
                 string secondType = getType(secondNode);
 
-                // Throw type mismatch error if types aren't integers
-                if (firstType != "boolean")
+                // Throw type mismatch error if types don't match
+                if (firstType != secondType)
                 {
-                    log("ERROR", "Type mismatch: Using " + firstType + " in boolean expression at (" + to_string(firstToken->getLine()) + ":" + to_string(firstToken->getColumn()) + ")");
-                    errorCount++;
-                }
-                else if (secondType != "boolean")
-                {
-                    log("ERROR", "Type mismatch: Using " + secondType + " in boolean expression at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + ")");
+                    log("ERROR", "Type mismatch: Comparing " + firstType + " to " + secondType + " in boolean expression at (" + to_string(firstToken->getLine()) + ":" + to_string(firstToken->getColumn()) + ")");
                     errorCount++;
                 }
             }
