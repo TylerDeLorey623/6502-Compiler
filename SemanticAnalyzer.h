@@ -272,6 +272,10 @@ class SemanticAnalyzer
                     {
                         // ADD branch
                         myAST->addNode("branch", "ADD");
+                        
+                        // Link token to ADD branch
+                        Token* token = node->getChild(1)->getToken();
+                        myAST->getMostRecentNode()->linkToken(token);
 
                         // digit
                         inorder(node->getChild(0));
@@ -321,6 +325,10 @@ class SemanticAnalyzer
                         {
                             myAST->addNode("branch", "isNotEq");
                         }
+
+                        // Link token to equality branch
+                        Token* token = node->getChild(2)->getToken();
+                        myAST->getMostRecentNode()->linkToken(token);
 
                         // Expr
                         inorder(node->getChild(1));
