@@ -165,6 +165,12 @@ class SemanticAnalyzer
                     
                     // Add node to AST
                     myAST->addNode("branch", "Block");
+
+                    // Link token to Block branch
+                    Token* token = node->getChild(0)->getToken();
+                    myAST->getMostRecentNode()->linkToken(token);
+
+                    // StatementList
                     inorder(node->getChild(1));
 
                     // Move up the symbol table (and adjust scope)
@@ -395,55 +401,38 @@ class SemanticAnalyzer
             string type = "UNKNOWN";
             string name = node->getName();
 
-            // If node is a leaf, look for keywords
-            if (node->isTokenLinked())
+            // Look for keywords
+            string tokenType = node->getToken()->getType();
+            Token* linkedToken = node->getToken();
+            
+            // If it is an identifier, look up symbol table
+            if (tokenType == "ID")
             {
-                string tokenType = node->getToken()->getType();
-                Token* linkedToken = node->getToken();
+                // Get information about identifier
+                HashNode* curHashNode = mySym->getCurrentHashNode();
                 
-                // If it is an identifier, look up symbol table
-                if (tokenType == "ID")
+                // Find this identifier in the symbol table and get its type
+                // If the identifier wasn't found, error would be thrown in the corresponding check function
+                HashNode* correctNode = findInSymbolTable(curHashNode, node->getName());
+                if (correctNode)
                 {
-                    // Get information about identifier
-                    HashNode* curHashNode = mySym->getCurrentHashNode();
-                    
-                    // Find this identifier in the symbol table and get its type
-                    // If the identifier wasn't found, error would be thrown in the corresponding check function
-                    HashNode* correctNode = findInSymbolTable(curHashNode, node->getName());
-                    if (correctNode)
-                    {
-                        type = correctNode->getType(name);
-                    }
-                }
-                // Check if its a string literal
-                else if (tokenType == "CHAR")
-                {
-                    type = "string";
-                } 
-                // Check if its an integer literal
-                else if (tokenType == "DIGIT")
-                {
-                    type = "int";
-                }
-                // Check if its a boolean literal
-                else if (tokenType == "BOOL_VAL")
-                {
-                    type = "boolean";
+                    type = correctNode->getType(name);
                 }
             }
-            // If node is a branch, check branch types
-            else
+            // Check if its a string literal
+            else if (tokenType == "CHAR")
             {
-                // Check if it's an integer expression
-                if (name == "ADD")
-                {
-                    type = "int";
-                }
-                // Check if it's a boolean expression 
-                else if (name == "isEq" || name == "isNotEq")
-                {
-                    type = "boolean";
-                }
+                type = "string";
+            } 
+            // Check if its an integer literal or ADD block
+            else if (tokenType == "DIGIT" || name == "ADD")
+            {
+                type = "int";
+            }
+            // Check if its a boolean literal or boolean block
+            else if (tokenType == "BOOL_VAL" || name == "isEq" || name == "isNotEq")
+            {
+                type = "boolean";
             }
 
             return type;
@@ -506,13 +495,7 @@ class SemanticAnalyzer
             // Get information about the value the target is getting assigned to
             Node* valueNode = currentBranch->getChild(1);
             string valueName = valueNode->getName();
-            Token* valueToken = nullptr;
-
-            // Check to see if value is a leaf node (being assigned directly to either a variable or literal)
-            if (valueNode->isTokenLinked())
-            {
-                valueToken = valueNode->getToken();
-            }
+            Token* valueToken = valueNode->getToken();
 
             // Find the target variable in the symbol table
             HashNode* correctNode = findInSymbolTable(curHashNode, targetName);
@@ -532,7 +515,7 @@ class SemanticAnalyzer
                 if (targetType != valueType)
                 {
                     // Type mismatch error when dealing with first ID and second ID
-                    if (targetToken->getType() == "ID" && valueToken && valueToken->getType() == "ID")
+                    if (targetToken->getType() == "ID" && valueToken->getType() == "ID")
                     {
                         log("ERROR", "Type mismatch: Assigning " + valueType + " value [" + valueName + "] to " + targetType + " variable [" + targetName + "] at (" + to_string(targetToken->getLine()) + ":" + to_string(targetToken->getColumn()) + ")");
                     }
