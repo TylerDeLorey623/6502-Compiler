@@ -42,7 +42,7 @@ class HashNode
                 // Initialized but not used
                 else if (!val.second.isUsed)
                 {
-                    log("WARNING", val.second.type + " [" + val.first + "] is initialized at (" + to_string(getLine(val.first)) + ":" + to_string(getColumn(val.first)) + "), but never used");
+                    log("WARNING", val.second.type + " [" + val.first + "] is declared at (" + to_string(getLine(val.first)) + ":" + to_string(getColumn(val.first)) + ") and was also initialized, but never used");
                     warningCount++;
                 }
             }
@@ -165,30 +165,50 @@ class HashNode
                     used = "false";
                 }
                 string scope = getName();
+                string line = to_string(getLine(name));
+                string column = to_string(getColumn(name));
 
                 // Format the string to look nice
                 int spaces = 8;
+
+                // NAME
                 string completeString = name;
                 for (int i = 0; i < spaces + 4 - name.size(); i++)
                 {
                     completeString += " ";
                 }
+                // TYPE
                 completeString += type;
                 for (int i = 0; i < spaces + 4 - type.size(); i++)
                 {
                     completeString += " ";
                 }
+                // ISINIT?
                 completeString += initialized;
                 for (int i = 0; i < spaces + 7 - initialized.size(); i++)
                 {
                     completeString += " ";
                 }
+                // ISUSED?
                 completeString += used;
                 for (int i = 0; i < spaces + 7 - used.size(); i++)
                 {
                     completeString += " ";
                 }
+                // SCOPE
                 completeString += scope;
+                for (int i = 0; i < spaces + 5 - scope.size(); i++)
+                {
+                    completeString += " ";
+                }
+                // LINE
+                completeString += line;
+                for (int i = 0; i < spaces + 4 - line.size(); i++)
+                {
+                    completeString += " ";
+                }
+                // COLUMN
+                completeString += column;
 
                 log("INFO", completeString);
             }
