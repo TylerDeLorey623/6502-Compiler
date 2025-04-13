@@ -139,6 +139,7 @@ class SemanticAnalyzer
         // In-order traversal of the CST to create the AST
         void inorder(Node* node)
         {
+            cout << node->getName() << endl;
             // Makes sure node is not a nullptr
             if (!node)
             {
@@ -183,13 +184,16 @@ class SemanticAnalyzer
                 else if (name == "Statement List")
                 {
                     // If it wasn't an epsilon production
-                    if (node->getChildren().size() != 0)
+                    if (!node->getChildren().empty())
                     {
                         // Statement
                         inorder(node->getChild(0));
 
-                        // Statement List
-                        inorder(node->getChild(1));
+                        // StatementList (if it exists)
+                        if (node->getChildren().size() > 1)
+                        {
+                            inorder(node->getChild(1));
+                        }
                     }
                 }
                 else if (name == "Statement")
@@ -364,7 +368,7 @@ class SemanticAnalyzer
             else
             {
                 Token* currentToken = node->getToken();
-                myAST->addNode("leaf", node->getName());
+                myAST->addNode("leaf", name);
                 myAST->getMostRecentNode()->linkToken(currentToken);
             }
         }
