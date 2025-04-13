@@ -514,20 +514,20 @@ class SemanticAnalyzer
                 // Throw type mismatch error if types don't match
                 if (targetType != valueType)
                 {
-                    // Type mismatch error when dealing with first ID and second ID
-                    if (targetToken->getType() == "ID" && valueToken->getType() == "ID")
+                    // Type mismatch error when dealing with assigning ID to an ID
+                    if (valueToken->getType() == "ID")
                     {
                         log("ERROR", "Type mismatch: Assigning " + valueType + " value [" + valueName + "] to " + targetType + " variable [" + targetName + "] at (" + to_string(targetToken->getLine()) + ":" + to_string(targetToken->getColumn()) + ")");
                     }
-                    // Type mismatch error when dealing with first ID and second literal
-                    else if (valueToken)
+                    // Type mismatch error when dealing with assigning a differently typed ADD or boolean expression to an ID
+                    else if (valueName == "ADD" || valueName == "isEq" || valueName == "isNotEq")
                     {
-                        log("ERROR", "Type mismatch: Assigning " + valueType + " literal [" + valueName + "] to " + targetType + " variable [" + targetName + "] at (" + to_string(targetToken->getLine()) + ":" + to_string(targetToken->getColumn()) + ")");
-                    }
-                    // Type mismatch error when dealing with first ID and second branch
+                        log("ERROR", "Type mismatch: Assigning " + valueType + " expression [" + valueName + "] to " + targetType + " variable [" + targetName + "] at (" + to_string(targetToken->getLine()) + ":" + to_string(targetToken->getColumn()) + ")");
+                    } 
+                    // Type mismatch error when dealing with assigning a literal to an ID
                     else
                     {
-                        log("ERROR", "Type mismatch: Assigning " + valueType + " value to " + targetType + " variable [" + targetName + "] at (" + to_string(targetToken->getLine()) + ":" + to_string(targetToken->getColumn()) + ")");
+                        log("ERROR", "Type mismatch: Assigning " + valueType + " literal [" + valueName + "] to " + targetType + " variable [" + targetName + "] at (" + to_string(targetToken->getLine()) + ":" + to_string(targetToken->getColumn()) + ")");
                     }
                     errorCount++;
                 }
