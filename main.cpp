@@ -93,16 +93,25 @@ int main(int argc, char* argv[])
             currentParse.printCST();
         }
 
-        // SEMANATIC ANALYSIS
+        // SEMANTIC ANALYSIS
         SemanticAnalyzer currentAnalyzer = SemanticAnalyzer(i + 1, currentCST);
         currentAnalyzer.generate();
         currentAnalyzer.traverseSymbolTable();
 
         cout << endl;
-        currentAnalyzer.printAST();
-        currentAnalyzer.printSymbolTable();
 
+        currentAnalyzer.printAST();
         errors = currentAnalyzer.getErrors();
+
+        if (errors > 0)
+        {
+            log("INFO", "Symbol Table for Program #" + to_string(i + 1) + " skipped due to Semantic Analysis error(s)");
+            currentParse.deleteCST();
+            currentAnalyzer.deleteAST();
+            currentAnalyzer.deleteSymbolTable();
+            continue;
+        }
+        currentAnalyzer.printSymbolTable();
 
         // CODE GEN
 
