@@ -139,7 +139,6 @@ class SemanticAnalyzer
         // In-order traversal of the CST to create the AST
         void inorder(Node* node)
         {
-            cout << node->getName() << endl;
             // Makes sure node is not a nullptr
             if (!node)
             {
@@ -252,8 +251,11 @@ class SemanticAnalyzer
                 // Same logic for if/while statements
                 else if (name == "If Statement" || name == "While Statement")
                 {
+                    // Gets name of the branch (If/While, removes Statement from the name)
+                    string bName = name.erase(name.length() - 10, 10);
+
                     // Add if/while Node (branch name is just If or While)
-                    myAST->addNode("branch", name.erase(name.length() - 10, 10));
+                    myAST->addNode("branch", bName);
 
                     // Boolean Expr
                     inorder(node->getChild(1));
@@ -395,8 +397,11 @@ class SemanticAnalyzer
             // Add character or space to the result
             result += character;
 
-            // Keep collecting CharLists
-            collectCharNodes(node->getChild(1), token, result);
+            // Keep collecting CharLists (if any are left)
+            if (node->getChildren().size() > 1)
+            {
+                collectCharNodes(node->getChild(1), token, result);
+            }
         }
 
         // Returns the type of a certain node
