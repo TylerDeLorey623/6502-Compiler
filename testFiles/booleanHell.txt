@@ -1,0 +1,8 @@
+
+/*  Boolean hell*/
+{
+int a
+if ((true != true) == (false == (false == (true != true)))){
+    print("made it")
+}
+}$
