@@ -497,10 +497,10 @@ class SemanticAnalyzer
                     // Set it to used
                     correctNode->setUsed(childName);
 
-                    // Throws warning if it was never initialized
+                    // Throws warning if it was wasn't initialized
                     if (!correctNode->checkInitialized(childName))
                     {
-                        log("WARNING", correctNode->getType(childName) + " [" + childName + "] is used at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + "), but never initialized");
+                        log("WARNING", correctNode->getType(childName) + " [" + childName + "] is used at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + "), but wasn't initialized");
                         warningCount++;
                     }
                 }
@@ -645,10 +645,10 @@ class SemanticAnalyzer
                         // Set it to used
                         correctNode->setUsed(secondName);
 
-                        // Throws warning if it was never initialized
+                        // Throws warning if it was wasn't initialized
                         if (!correctNode->checkInitialized(secondName))
                         {
-                            log("WARNING", correctNode->getType(secondName) + " [" + secondName + "] is used at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + "), but never initialized");
+                            log("WARNING", correctNode->getType(secondName) + " [" + secondName + "] is used at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + "), but wasn't initialized");
                             warningCount++;
                         }
                     }
@@ -726,7 +726,7 @@ class SemanticAnalyzer
                         // Set it to used
                         correctNode->setUsed(firstName);
 
-                        // Throws warning if it was never initialized
+                        // Throws warning if it was wasn't initialized
                         if (!correctNode->checkInitialized(firstName))
                         {
                             log("WARNING", correctNode->getType(firstName) + " [" + firstName + "] is used at (" + to_string(firstToken->getLine()) + ":" + to_string(firstToken->getColumn()) + "), but wasn't initialized");
@@ -773,10 +773,10 @@ class SemanticAnalyzer
                         // Set it to used
                         correctNode->setUsed(secondName);
 
-                        // Throws warning if it was never initialized
+                        // Throws warning if it was wasn't initialized
                         if (!correctNode->checkInitialized(secondName))
                         {
-                            log("WARNING", correctNode->getType(secondName) + " [" + secondName + "] is used at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + "), but never initialized");
+                            log("WARNING", correctNode->getType(secondName) + " [" + secondName + "] is used at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + "), but wasn't initialized");
                             warningCount++;
                         }
                     }
