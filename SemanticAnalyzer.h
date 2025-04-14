@@ -20,23 +20,6 @@ class SemanticAnalyzer
             mySym = new SymbolTable();
         }
 
-        // Prints the AST
-        void printAST()
-        {
-            if (VERBOSE)
-            {
-                log("INFO", "AST for Program #" + to_string(programNumber));
-                // Initialize the result string
-                traversalResult = "";
-
-                // Make initial call to expand from root
-                expand(myAST->getRoot(), 0);
-
-                // Print results
-                cout << traversalResult << endl;
-            }
-        }
-
         // Deletes AST from Memory so there are no memory leaks
         void deleteAST()
         {
@@ -62,10 +45,47 @@ class SemanticAnalyzer
             inorder(programCST->getRoot());
         }
 
+        // Prints the AST
+        void printAST()
+        {
+            if (VERBOSE)
+            {
+                string ifErrors = "";
+                if (errorCount > 0)
+                {
+                    ifErrors = " (includes Semantic errors)";
+                }
+
+                log("INFO", "AST for Program #" + to_string(programNumber) + ifErrors);
+
+                // Initialize the result string
+                traversalResult = "";
+
+                // Make initial call to expand from root
+                expand(myAST->getRoot(), 0);
+
+                // Print results
+                cout << traversalResult << endl;
+            }
+        }
+
         // Traverse Symbol Table to find more warnings
         void traverseSymbolTable()
         {
+            int preWarnings = warningCount; 
+            
+            // DEBUG log
+            log("DEBUG", "Finding extra warnings...");
+
+            // Traverse Symbol Table
             traverseST(mySym->getRoot());
+
+            // Print another DEBUG message if no extra warnings were found
+            if (warningCount == preWarnings)
+            {
+                log("DEBUG", "None found.");
+            }
+
             log("INFO", "Semantic Analysis completed with " + to_string(errorCount) + " error(s) and " + to_string(warningCount) + " warning(s)");
         }
 
@@ -76,7 +96,7 @@ class SemanticAnalyzer
             {
                 log("INFO", "Symbol Table for Program #" + to_string(programNumber));
                 
-                log("INFO", "NAME        TYPE        isINIT?        isUSED?        SCOPE");
+                log("INFO", "NAME        TYPE        isINIT?        isUSED?        SCOPE        LINE        COLUMN");
 
                 // Make initial call to expand from root
                 printST(mySym->getRoot());
@@ -405,10 +425,13 @@ class SemanticAnalyzer
         }
 
         // Returns the type of a certain node
-        string getType(Node* node)
+        string getType(Node* node, string actionName)
         {
             string type = "UNKNOWN";
             string name = node->getName();
+
+            // DEBUG log
+            log("DEBUG", actionName + ": TYPE checking for '" + name + "'");
 
             // Look for keywords
             string tokenType = node->getToken()->getType();
@@ -462,6 +485,9 @@ class SemanticAnalyzer
             // Checks to see if printing a variable 
             if (linkedToken->getType() == "ID")
             {
+                // DEBUG log
+                log("DEBUG", "Print Statement: SCOPE checking for identifier '" + childName + "'");
+
                 // Find this variable in the symbol table
                 HashNode* correctNode = findInSymbolTable(curHashNode, childName);
 
@@ -477,8 +503,6 @@ class SemanticAnalyzer
                         log("WARNING", correctNode->getType(childName) + " [" + childName + "] is used at (" + to_string(linkedToken->getLine()) + ":" + to_string(linkedToken->getColumn()) + "), but never initialized");
                         warningCount++;
                     }
-
-                    correctNode->setLineAndColumn(childName, linkedToken->getLine(), linkedToken->getColumn());
                 }
                 // If it was not found, throw 'use of undeclared variable' error
                 else
@@ -509,16 +533,18 @@ class SemanticAnalyzer
             // Find the target variable in the symbol table
             HashNode* correctNode = findInSymbolTable(curHashNode, targetName);
 
+            // DEBUG log
+            log("DEBUG", "Assignment Statement: SCOPE checking for identifier '" + targetName + "'");
+
             // If variable exists
             if (correctNode)
             {
                 // Set it to initialized and link token
                 correctNode->setInitialized(targetName);
-                correctNode->setLineAndColumn(targetName, targetToken->getLine(), targetToken->getColumn());
 
                 // Get types of both AST Nodes
-                string targetType = getType(targetNode);
-                string valueType = getType(valueNode);
+                string targetType = getType(targetNode, "Assignment Statement");
+                string valueType = getType(valueNode, "Assignment Statement");
 
                 // Throw type mismatch error if types don't match
                 if (targetType != valueType)
@@ -564,6 +590,9 @@ class SemanticAnalyzer
             // Add the hash value at the current HashNode
             bool successful = curHashNode->addValue(name, type);
 
+            // DEBUG log
+            log("DEBUG", "Variable Declaration: Creating identifier '" + name + "' at Scope " + curHashNode->getName());
+
             // If there was a collision, throw error
             if (!successful)
             {
@@ -606,6 +635,9 @@ class SemanticAnalyzer
                 {
                     HashNode* correctNode = findInSymbolTable(curHashNode, secondName);
                     successful = correctNode;
+                    
+                    // DEBUG log
+                    log("DEBUG", "Addition: SCOPE checking for identifier '" + secondName + "'");
 
                     // If it was successful, set to used and link token
                     if (correctNode)
@@ -619,8 +651,6 @@ class SemanticAnalyzer
                             log("WARNING", correctNode->getType(secondName) + " [" + secondName + "] is used at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + "), but never initialized");
                             warningCount++;
                         }
-
-                        correctNode->setLineAndColumn(secondName, secondToken->getLine(), secondToken->getColumn());
                     }
                 }
                 // If not an identifier, it's a literal
@@ -639,8 +669,8 @@ class SemanticAnalyzer
             if (successful)
             {
                 // Get types of both AST Nodes
-                string firstType = getType(firstNode);
-                string secondType = getType(secondNode);
+                string firstType = getType(firstNode, "Addition Statement");
+                string secondType = getType(secondNode, "Addition Statement");
 
                 // Throw type mismatch error if types aren't integers
                 if (firstType != "int")
@@ -684,6 +714,9 @@ class SemanticAnalyzer
                 // Check if the second "number" is an identifier
                 if (firstToken->getType() == "ID")
                 {
+                    // DEBUG log
+                    log("DEBUG", "Boolean Expression: SCOPE checking for identifier '" + firstName + "'");
+
                     HashNode* correctNode = findInSymbolTable(curHashNode, firstName);
                     firstSuccessful = correctNode;
 
@@ -699,8 +732,6 @@ class SemanticAnalyzer
                             log("WARNING", correctNode->getType(firstName) + " [" + firstName + "] is used at (" + to_string(firstToken->getLine()) + ":" + to_string(firstToken->getColumn()) + "), but wasn't initialized");
                             warningCount++;
                         }
-
-                        correctNode->setLineAndColumn(firstName, firstToken->getLine(), firstToken->getColumn());
                     }
                 }
                 // If not an identifier, it's a literal
@@ -730,6 +761,9 @@ class SemanticAnalyzer
                 // Check if the second "number" is an identifier
                 if (secondToken->getType() == "ID")
                 {
+                    // DEBUG log
+                    log("DEBUG", "Boolean Expression: SCOPE checking for identifier '" + secondName + "'");
+
                     HashNode* correctNode = findInSymbolTable(curHashNode, secondName);
                     secondSuccessful = correctNode;
 
@@ -745,8 +779,6 @@ class SemanticAnalyzer
                             log("WARNING", correctNode->getType(secondName) + " [" + secondName + "] is used at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + "), but never initialized");
                             warningCount++;
                         }
-
-                        correctNode->setLineAndColumn(secondName, secondToken->getLine(), secondToken->getColumn());
                     }
                 }
                 // If not an identifier, it's a literal
@@ -765,8 +797,8 @@ class SemanticAnalyzer
             if (firstSuccessful && secondSuccessful)
             {
                 // Get types of both AST Nodes
-                string firstType = getType(firstNode);
-                string secondType = getType(secondNode);
+                string firstType = getType(firstNode, "Boolean Expression");
+                string secondType = getType(secondNode, "Boolean Expression");
 
                 // Throw type mismatch error if types don't match
                 if (firstType != secondType)
