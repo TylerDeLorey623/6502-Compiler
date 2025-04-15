@@ -165,7 +165,7 @@ class SemanticAnalyzer
                 return;
             }
 
-            // Get the name of the Node (will initially be nullptr)
+            // Get the name of the Node
             string name = node->getName();
 
             // Checks if current Node is a branch
