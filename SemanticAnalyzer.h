@@ -245,7 +245,7 @@ class SemanticAnalyzer
                     // EXPR
                     inorder(node->getChild(2));
 
-                    // Scope/type checking for print statements
+                    // Scope/type checking for assignment statements
                     checkAssignment();
 
                     // Move up AST
