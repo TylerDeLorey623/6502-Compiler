@@ -103,6 +103,18 @@ class SemanticAnalyzer
             }
         }
 
+        // Returns AST (for Code Gen)
+        Tree* getAST()
+        {
+            return this->myAST;
+        }
+
+        // Returns Symbol Table (for Code Gen)
+        SymbolTable* getSymbolTable()
+        {
+            return this->mySym;
+        }
+
         // Returns error count
         int getErrors()
         {
