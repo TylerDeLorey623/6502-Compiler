@@ -214,6 +214,18 @@ class HashNode
             }
         }
 
+        // Check if table was traversed for Code Gen
+        bool checkTraversed()
+        {
+            return this->traversed;
+        }
+
+        // Set traversed when traversed in Code Gen
+        void setTraversed()
+        {
+            this->traversed = true;
+        }
+
     private:
         // Creates a struct that stores object information for each value in hash table
         struct hashObject
@@ -233,6 +245,9 @@ class HashNode
         string name;
         HashNode* parent;
         vector<HashNode*> children; 
+
+        // Member used for Symbol Table
+        bool traversed = false;
 
         // Logging function for Analyzer used for Hash Table warnings
         void log(const string type, const string message)
