@@ -13,6 +13,7 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "SemanticAnalyzer.h"
+#include "CodeGen.h"
 
 using namespace std;
 
@@ -113,8 +114,14 @@ int main(int argc, char* argv[])
         }
         currentAnalyzer.printSymbolTable();
 
-        // CODE GEN
+        Tree* currentAST = currentAnalyzer.getAST();
+        SymbolTable* currentSymbolTable = currentAnalyzer.getSymbolTable();
 
+        cout << endl;
+
+        // CODE GEN
+        CodeGen currentCodeGen = CodeGen(i + 1, currentAST, currentSymbolTable);
+        currentCodeGen.print();
 
         // PROPER MEMORY MANAGEMENT
         currentParse.deleteCST();
