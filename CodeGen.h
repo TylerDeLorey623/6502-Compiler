@@ -73,6 +73,9 @@ class CodeGen
         vector<VarNScope> staticData;
         vector<int> jumps;
 
+        // Keeps track of static data
+        int lastStaticIndex = 0;
+
         // Pointer for inserting code in runtime environment
         int pc = 0x00;
 
@@ -122,8 +125,20 @@ class CodeGen
                     string newVar = node->getChild(1)->getName();
                     string newScope = currentHash->getName();
                     staticData.emplace_back(newVar, newScope);
+                    lastStaticIndex = staticData.size() - 1;
 
-                    
+                    // If the data type is either an int or a boolean, add code that initializes it to 0 (which is false)
+                    if (newType != "string")
+                    {
+                        // Load the accumulator with 0
+                        write("A9");
+                        write("00");
+
+                        // Store the accumulator in temporary memory location (little endian, will always begin with 00 since highest memory location is 0x00ff, which is 0xff)
+                        write("8D");
+                        write("T" + to_string(lastStaticIndex));
+                        write("00");
+                    }
                 }
             }
             // If the node is a leaf
@@ -131,6 +146,16 @@ class CodeGen
             {
 
             }
+        }
+
+        // Write into the runtime environment at location of pc pointer
+        void write(string hex)
+        {
+            // Insert hex (or temp value) to runtime environment code
+            runEnv[pc] = hex;
+
+            // Increment program counter
+            pc++;
         }
 
         // Logging function for CodeGen
@@ -162,4 +187,4 @@ class CodeGen
         }
 };
 
-#endif 
+#endif
