@@ -153,10 +153,10 @@ class CodeGen
                     if (readValue->isLeaf())
                     {
                         // Get variable type of assigned variable
-                        string varType = getVarType(locationValue->getName());
+                        string locationVarType = getType(locationValue);
 
-                        // If variable uses static allocation
-                        if (varType != "string")
+                        // If the location variable uses static allocation
+                        if (locationVarType != "string")
                         {
                             // Check if its an ID
                             if (readValue->getToken()->getType() == "ID")
@@ -175,26 +175,64 @@ class CodeGen
                                 // Load accumulator with constant
                                 write("A9");
 
-                                // Convert false/true to 0/1 respectively
-                                if (literalName == "false")
-                                {
-                                    write("00");
-                                }
-                                else if (literalName == "true")
-                                {
-                                    write("01");
-                                }
-                                // Otherwise its a literal integer (0-9, so pad with space)
-                                else 
-                                {
-                                    write("0" + literalName);
-                                }
+                                // Adds the literal to the runtime environment
+                                addStaticLiteral(literalName);
                             }
                             // Write this value (ID or literal) into memory at locationVal
                             write("8D");
                             write("T" + to_string(locationVal));
                             write("00");
                         }
+                    }
+                }
+                // Print Statement
+                else if (name == "Print")
+                {
+                    // Get information about print
+                    Node* printValue = node->getChild(0);
+                    string type = getType(printValue);
+
+                    // Print Statement is normal if child is just a leaf node
+                    if (printValue->isLeaf())
+                    {
+                        // Check if printed value is an ID
+                        if (printValue->getToken()->getType() == "ID")
+                        {
+                            // Load Y register with contents of variable
+                            write("AC");
+                            write("T" + to_string(findVarIndex(printValue->getName())));
+                            write("00");
+                        }
+                        // If it's not an ID, it's a literal
+                        else
+                        {
+                            // Load Y register with constant
+                            write("A0");
+
+                            // If it is not a string
+                            if (printValue->getToken()->getType() != "CHAR")
+                            {
+                                // Adds the static literal to the runtime environment
+                                addStaticLiteral(printValue->getName());
+                            }
+                        }
+
+                        // Loads either a 1 or 2 into X register depending on static allocation
+                        write("A2");
+
+                        // Loads a 1 in the X register if it is not a string
+                        if (type != "string")
+                        {
+                            write("01");
+                        }
+                        // Loads a 2 in the X register if it is a string
+                        else
+                        {
+                            write("02");
+                        }
+
+                        // System call
+                        write("FF");
                     }
                 }
             }
@@ -230,16 +268,61 @@ class CodeGen
         }
 
         // Gets the type of a variable from the symbol table
-        string getVarType(const string varName)
+        string getType(Node* curNode)
         {
-            // Finds the variable
-            HashNode* node = currentHash;
-            while (!node->exists(varName))
+            string type = "UNKNOWN";
+            string name = curNode->getName();
+            string tokenType = curNode->getToken()->getType();
+
+            // If it is an identifier, look up symbol table
+            if (tokenType == "ID")
             {
-                node = node->getParent();
+                // Finds the variable
+                HashNode* node = currentHash;
+                while (!node->exists(curNode->getName()))
+                {
+                    node = node->getParent();
+                }
+
+                // Gets variable type
+                type = node->getType(name);
+            }
+            // Check if its a string literal
+            else if (tokenType == "CHAR")
+            {
+                type = "string";
+            } 
+            // Check if its an integer literal or ADD block
+            else if (tokenType == "DIGIT" || name == "ADD")
+            {
+                type = "int";
+            }
+            // Check if its a boolean literal or boolean block
+            else if (tokenType == "BOOL_VAL" || name == "isEq" || name == "isNotEq")
+            {
+                type = "boolean";
             }
 
-            return node->getType(varName);
+            return type;
+        }
+
+        // Converts false/true to 0/1 respectively and writes it (and writes integers)
+        void addStaticLiteral(string name)
+        {
+            // Convert false/true to 0/1 respectively
+            if (name == "false")
+            {
+                write("00");
+            }
+            else if (name == "true")
+            {
+                write("01");
+            }
+            // Otherwise its a literal integer (0-9, so pad with 0)
+            else 
+            {
+                write("0" + name);
+            }
         }
 
         // Logging function for CodeGen
