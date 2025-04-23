@@ -34,6 +34,7 @@ class CodeGen
             vector<string> newValues;
             for (int i = 0, n = staticData.size(); i < n; i++)
             {
+                log("DEBUG", "Backpatch: Variable " + staticData[i].var + " [T" + to_string(i) + "] with [" + toHex(pc) + "]");
                 newValues.emplace_back(to_string(pc));
                 pc++;
             }
@@ -340,13 +341,28 @@ class CodeGen
             // Find variable in staticData array
             for (VarNScope val : staticData)
             {
+                // Check if variable name is correct
                 if (val.var == varName)
                 {
-                    correctIndex = index;
+                    // Check if its in a reachable Scope
+                    HashNode* node = currentHash;
+                    string valScope = val.scope; 
+
+                    while (node && node->getName() != valScope)
+                    {
+                        node = node->getParent();
+                    }
+
+                    // If it exists, set as candidate
+                    if (node)
+                    {
+                        correctIndex = index;
+                    }
                 }
                 index++;
             }
 
+            // Returns last candidate (deepest Scope)
             return correctIndex;
         }
 
@@ -430,7 +446,7 @@ class CodeGen
                 {
                     cout << " ";
                 }
-                cout << "Code Generation - ";
+                cout << "Code Gen - ";
 
                 cout << message << endl;
             }
