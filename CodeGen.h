@@ -79,6 +79,9 @@ class CodeGen
         // Pointer for inserting code in runtime environment
         int pc = 0x00;
 
+        // Pointer for inserting hex in heap
+        int heapVal = 0xff;
+
         // Traverses AST and generates hexadecimal code in runtime environment
         void traverse(Node* node)
         {
@@ -210,10 +213,19 @@ class CodeGen
                             write("A0");
 
                             // If it is not a string
-                            if (printValue->getToken()->getType() != "CHAR")
+                            if (type != "string")
                             {
                                 // Adds the static literal to the runtime environment
                                 addStaticLiteral(printValue->getName());
+                            }
+                            // If it is a string
+                            else
+                            {
+                                // Create string in heap
+                                createString(printValue->getName());
+
+                                // Load Y register with pointer to string location
+                                write(toHex(heapVal + 1));
                             }
                         }
 
@@ -246,6 +258,37 @@ class CodeGen
 
             // Increment program counter
             pc++;
+        }
+
+        // Writes a string into the heap in the runtime environment
+        void createString(const string str)
+        {
+            // Update the heap pointer
+            heapVal = heapVal - str.length() - 1;
+
+            // Create temporary pointer
+            int ptr = heapVal + 1;
+
+            // For each character in the string
+            for (char c : str)
+            {
+                // Convert to ASCII
+                int asciiVal = c;
+
+                // Write into heap
+                runEnv[ptr] = toHex(asciiVal);
+
+                ptr++;
+            }
+        }
+
+        // Convert decimal to hexadecimal
+        string toHex(int num)
+        {
+            // Convert to hex string (with correct padding)
+            stringstream curChar;
+            curChar << uppercase << hex << num;
+            return curChar.str();
         }
 
         // Gets the index of static data where variable is used
