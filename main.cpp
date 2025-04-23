@@ -4,6 +4,7 @@
 #include <vector>
 #include <regex>
 #include <unordered_map>
+#include <iomanip>
 
 #include "Verbose.h"
 #include "Token.h"
@@ -121,6 +122,7 @@ int main(int argc, char* argv[])
 
         // CODE GEN
         CodeGen currentCodeGen = CodeGen(i + 1, currentAST, currentSymbolTable);
+        currentCodeGen.generate();
         currentCodeGen.print();
 
         // PROPER MEMORY MANAGEMENT
