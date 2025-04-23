@@ -140,22 +140,106 @@ class CodeGen
                         write("00");
                     }
                 }
-            }
-            // If the node is a leaf
-            else
-            {
+                // Assignment Statement
+                else if (name == "Assign")
+                {
+                    // Get information about assignment
+                    Node* locationValue = node->getChild(0);
+                    Node* readValue = node->getChild(1);
 
+                    int locationVal = findVarIndex(locationValue->getName());
+
+                    // Assigning statement is normal if second child is a leaf node
+                    if (readValue->isLeaf())
+                    {
+                        // Get variable type of assigned variable
+                        string varType = getVarType(locationValue->getName());
+
+                        // If variable uses static allocation
+                        if (varType != "string")
+                        {
+                            // Check if its an ID
+                            if (readValue->getToken()->getType() == "ID")
+                            {
+                                // Load the readValue from memory
+                                write("AD");
+                                write("T" + to_string(findVarIndex(readValue->getName())));
+                                write("00");
+                            }
+                            // If it wasn't an ID, it's a literal
+                            else
+                            {
+                                // Name of literal
+                                string literalName = readValue->getName();
+
+                                // Load accumulator with constant
+                                write("A9");
+
+                                // Convert false/true to 0/1 respectively
+                                if (literalName == "false")
+                                {
+                                    write("00");
+                                }
+                                else if (literalName == "true")
+                                {
+                                    write("01");
+                                }
+                                // Otherwise its a literal integer (0-9, so pad with space)
+                                else 
+                                {
+                                    write("0" + literalName);
+                                }
+                            }
+                            // Write this value (ID or literal) into memory at locationVal
+                            write("8D");
+                            write("T" + to_string(locationVal));
+                            write("00");
+                        }
+                    }
+                }
             }
         }
 
         // Write into the runtime environment at location of pc pointer
-        void write(string hex)
+        void write(const string hex)
         {
             // Insert hex (or temp value) to runtime environment code
             runEnv[pc] = hex;
 
             // Increment program counter
             pc++;
+        }
+
+        // Gets the index of static data where variable is used
+        int findVarIndex(const string varName)
+        {
+            int index = 0;
+            int correctIndex = -1;
+
+            // Find variable in staticData array
+            for (VarNScope val : staticData)
+            {
+                if (val.var == varName)
+                {
+                    correctIndex = index;
+                }
+                index++;
+            }
+
+            return correctIndex;
+        }
+
+        // Gets the type of a variable from the symbol table
+        string getVarType(const string varName)
+        {
+            // Finds the variable
+            HashNode* node = currentHash;
+            while (!node->exists(varName))
+            {
+                node = node->getParent();
+            }
+
+            return node->getType(varName);
         }
 
         // Logging function for CodeGen
