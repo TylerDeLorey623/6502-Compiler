@@ -23,7 +23,39 @@ class CodeGen
         // Starts generating code
         void generate()
         {
+            // Traverse tree to generate code
             traverse(myAST->getRoot());
+
+            // Create break at the end of the code
+            write("00");
+
+            // Backpatch temporary values
+            // Get real values into a vector
+            vector<string> newValues;
+            for (int i = 0, n = staticData.size(); i < n; i++)
+            {
+                newValues.emplace_back(to_string(pc));
+                pc++;
+            }
+
+            // Store index for runtime environment
+            int index = 0;
+
+            // Replace temporary values in runtime environment with real values
+            for (string s : runEnv)
+            {
+                // Checks if its a temporary value
+                if (s[0] == 'T')
+                {
+                    // Get real value (converts X in TX to an integer)
+                    char val = s[1];
+                    int correctIndex = val - '0';
+
+                    // Replace temp value with real value
+                    runEnv[index] = toHex(stoi(newValues[correctIndex]));
+                }
+                index++;
+            }
         }
 
         // Print runtime environment
@@ -181,11 +213,19 @@ class CodeGen
                                 // Adds the literal to the runtime environment
                                 addStaticLiteral(literalName);
                             }
-                            // Write this value (ID or literal) into memory at locationVal
-                            write("8D");
-                            write("T" + to_string(locationVal));
-                            write("00");
                         }
+                        // Create string and store pointer
+                        else
+                        {
+                            createString(readValue->getName());
+                            write("A9");
+                            write(toHex(heapVal + 1));
+                        }
+
+                        // Write this value (ID or literal) into memory at locationVal
+                        write("8D");
+                        write("T" + to_string(locationVal));
+                        write("00");
                     }
                 }
                 // Print Statement
@@ -287,7 +327,7 @@ class CodeGen
         {
             // Convert to hex string (with correct padding)
             stringstream curChar;
-            curChar << uppercase << hex << num;
+            curChar << uppercase << hex << setw(2) << setfill('0') << num;
             return curChar.str();
         }
 
