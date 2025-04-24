@@ -30,33 +30,7 @@ class CodeGen
             write("00");
 
             // Backpatch temporary values
-            // Get real values into a vector
-            vector<string> newValues;
-            for (int i = 0, n = staticData.size(); i < n; i++)
-            {
-                log("DEBUG", "Backpatch: Variable " + staticData[i].var + " [T" + to_string(i) + "] with [" + toHex(pc) + "]");
-                newValues.emplace_back(to_string(pc));
-                pc++;
-            }
-
-            // Store index for runtime environment
-            int index = 0;
-
-            // Replace temporary values in runtime environment with real values
-            for (string s : runEnv)
-            {
-                // Checks if its a temporary value
-                if (s[0] == 'T')
-                {
-                    // Get real value (converts X in TX to an integer)
-                    char val = s[1];
-                    int correctIndex = val - '0';
-
-                    // Replace temp value with real value
-                    runEnv[index] = toHex(stoi(newValues[correctIndex]));
-                }
-                index++;
-            }
+            backpatch();
         }
 
         // Print runtime environment
@@ -183,51 +157,25 @@ class CodeGen
                     Node* locationValue = node->getChild(0);
                     Node* readValue = node->getChild(1);
 
-                    int locationVal = findVarIndex(locationValue->getName());
+                    // Get the temporary location for the variable (T0, T1, etc)
+                    string locationTemp = findVarIndex(locationValue->getName());
 
                     // Assigning statement is normal if second child is a leaf node
                     if (readValue->isLeaf())
                     {
-                        // Get variable type of assigned variable
-                        string locationVarType = getType(locationValue);
-
-                        // If the location variable uses static allocation
-                        if (locationVarType != "string")
-                        {
-                            // Check if its an ID
-                            if (readValue->getToken()->getType() == "ID")
-                            {
-                                // Load the readValue from memory
-                                write("AD");
-                                write("T" + to_string(findVarIndex(readValue->getName())));
-                                write("00");
-                            }
-                            // If it wasn't an ID, it's a literal
-                            else
-                            {
-                                // Name of literal
-                                string literalName = readValue->getName();
-
-                                // Load accumulator with constant
-                                write("A9");
-
-                                // Adds the literal to the runtime environment
-                                addStaticLiteral(literalName);
-                            }
-                        }
-                        // Create string and store pointer
-                        else
-                        {
-                            createString(readValue->getName());
-                            write("A9");
-                            write(toHex(heapVal + 1));
-                        }
-
-                        // Write this value (ID or literal) into memory at locationVal
-                        write("8D");
-                        write("T" + to_string(locationVal));
-                        write("00");
+                        // Write the value to accumulator
+                        writeToAcc(readValue);
                     }
+                    // Do further traversing through the tree if there are further branches (ADD/isEq/isNotEq)
+                    else
+                    {
+                        traverse(readValue);
+                    }
+
+                    // Write calculated value (ID or literal) into memory at locationTemp
+                    write("8D");
+                    write(locationTemp);
+                    write("00");
                 }
                 // Print Statement
                 else if (name == "Print")
@@ -244,7 +192,7 @@ class CodeGen
                         {
                             // Load Y register with contents of variable
                             write("AC");
-                            write("T" + to_string(findVarIndex(printValue->getName())));
+                            write(findVarIndex(printValue->getName()));
                             write("00");
                         }
                         // If it's not an ID, it's a literal
@@ -288,17 +236,112 @@ class CodeGen
                         write("FF");
                     }
                 }
+                // ADD branch
+                else if (name == "ADD")
+                {
+                    // Get information about the addition
+                    Node* firstValue = node->getChild(0);
+                    Node* secondValue = node->getChild(1);
+
+                    // If second value is a digit and not another branch
+                    if (secondValue->isLeaf())
+                    {
+                        // Write the second value to the accumulator
+                        writeToAcc(secondValue);
+                    }
+                    else
+                    {
+
+                    }
+                }
             }
         }
 
-        // Write into the runtime environment at location of pc pointer
-        void write(const string hex)
+        // Backpatches after code was generated
+        void backpatch()
         {
-            // Insert hex (or temp value) to runtime environment code
-            runEnv[pc] = hex;
+            // Get real values into a vector
+            vector<string> newValues;
+            for (int i = 0, n = staticData.size(); i < n; i++)
+            {
+                log("DEBUG", "Backpatch: Variable '" + staticData[i].var + "' [T" + to_string(i) + "] with [" + toHex(pc) + "]");
+                newValues.emplace_back(to_string(pc));
+                pc++;
+            }
 
-            // Increment program counter
-            pc++;
+            // Store index for runtime environment
+            int index = 0;
+
+            // Replace temporary values in runtime environment with real values
+            for (string s : runEnv)
+            {
+                // Checks if its a temporary value
+                if (s[0] == 'T')
+                {
+                    // Get real value (converts X in TX to an integer)
+                    char val = s[1];
+                    int correctIndex = val - '0';
+
+                    // Replace temp value with real value
+                    write(toHex(stoi(newValues[correctIndex])), index);
+                }
+                index++;
+            }
+        }
+
+        // Write into the runtime environment at location of pc pointer (or specified index)
+        void write(const string hex, int index = -1)
+        {
+            // If not writing into specified index, write it at program counter
+            if (index == -1)
+            {
+                index = pc;
+
+                // Increment program counter
+                pc++;
+            }
+            
+            // Insert hex (or temp value) to runtime environment code
+            runEnv[index] = hex;
+        }
+
+        // Writes a value to the accumulator
+        void writeToAcc(Node* node)
+        {
+            // Get variable type of assigned variable
+            string type = getType(node);
+
+            // If the location variable uses static allocation
+            if (type != "string")
+            {
+                // Check if its an ID
+                if (node->getToken()->getType() == "ID")
+                {
+                    // Load the accumulator with the variable
+                    write("AD");
+                    write(findVarIndex(node->getName()));
+                    write("00");
+                }
+                // If it wasn't an ID, it's a literal
+                else
+                {
+                    // Name of literal
+                    string literalName = node->getName();
+
+                    // Load accumulator with constant
+                    write("A9");
+
+                    // Adds the literal to the runtime environment
+                    addStaticLiteral(literalName);
+                }
+            }
+            // Create string and store pointer
+            else
+            {
+                createString(node->getName());
+                write("A9");
+                write(toHex(heapVal + 1));
+            }
         }
 
         // Writes a string into the heap in the runtime environment
@@ -317,7 +360,7 @@ class CodeGen
                 int asciiVal = c;
 
                 // Write into heap
-                runEnv[ptr] = toHex(asciiVal);
+                write(toHex(asciiVal), ptr);
 
                 ptr++;
             }
@@ -333,7 +376,7 @@ class CodeGen
         }
 
         // Gets the index of static data where variable is used
-        int findVarIndex(const string varName)
+        string findVarIndex(const string varName)
         {
             int index = 0;
             int correctIndex = -1;
@@ -363,7 +406,7 @@ class CodeGen
             }
 
             // Returns last candidate (deepest Scope)
-            return correctIndex;
+            return 'T' + to_string(correctIndex);
         }
 
         // Gets the type of a variable from the symbol table
