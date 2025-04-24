@@ -164,7 +164,7 @@ class CodeGen
                     if (readValue->isLeaf())
                     {
                         // Write the value to accumulator
-                        writeToAcc(readValue);
+                        writeToRegister(readValue, "ACC");
                     }
                     // Do further traversing through the tree if there are further branches (ADD/isEq/isNotEq)
                     else
@@ -172,9 +172,16 @@ class CodeGen
                         traverse(readValue);
                     }
 
-                    // Write calculated value (ID or literal) into memory at locationTemp
+                    // Write calculated value (ID or literal) from accumulator into memory at locationTemp
                     write("8D");
                     write(locationTemp);
+                    write("00");
+
+                    // Reset temporary value used in further traversals
+                    write("A9");
+                    write("00");
+                    write("8D");
+                    write("FF");
                     write("00");
                 }
                 // Print Statement
@@ -187,54 +194,44 @@ class CodeGen
                     // Print Statement is normal if child is just a leaf node
                     if (printValue->isLeaf())
                     {
-                        // Check if printed value is an ID
-                        if (printValue->getToken()->getType() == "ID")
-                        {
-                            // Load Y register with contents of variable
-                            write("AC");
-                            write(findVarIndex(printValue->getName()));
-                            write("00");
-                        }
-                        // If it's not an ID, it's a literal
-                        else
-                        {
-                            // Load Y register with constant
-                            write("A0");
-
-                            // If it is not a string
-                            if (type != "string")
-                            {
-                                // Adds the static literal to the runtime environment
-                                addStaticLiteral(printValue->getName());
-                            }
-                            // If it is a string
-                            else
-                            {
-                                // Create string in heap
-                                createString(printValue->getName());
-
-                                // Load Y register with pointer to string location
-                                write(toHex(heapVal + 1));
-                            }
-                        }
-
-                        // Loads either a 1 or 2 into X register depending on static allocation
-                        write("A2");
-
-                        // Loads a 1 in the X register if it is not a string
-                        if (type != "string")
-                        {
-                            write("01");
-                        }
-                        // Loads a 2 in the X register if it is a string
-                        else
-                        {
-                            write("02");
-                        }
-
-                        // System call
-                        write("FF");
+                        // Writes value in print statement to the Y register
+                        writeToRegister(printValue, "Y");
                     }
+                    // If there are more branches, like addition or boolean expressions
+                    else 
+                    {
+                        // Traverse those
+                        traverse(printValue);
+
+                        // Write value into the Y register
+                        write("AC");
+                        write("FF");
+                        write("00");
+                    }
+
+                    // Loads either a 1 or 2 into X register depending on static allocation
+                    write("A2");
+
+                    // Loads a 1 in the X register if it is not a string
+                    if (type != "string")
+                    {
+                        write("01");
+                    }
+                    // Loads a 2 in the X register if it is a string
+                    else
+                    {
+                        write("02");
+                    }
+
+                    // System call
+                    write("FF");
+
+                    // Reset temporary value used in further traversals
+                    write("A9");
+                    write("00");
+                    write("8D");
+                    write("FF");
+                    write("00");
                 }
                 // ADD branch
                 else if (name == "ADD")
@@ -243,16 +240,33 @@ class CodeGen
                     Node* firstValue = node->getChild(0);
                     Node* secondValue = node->getChild(1);
 
-                    // If second value is a digit and not another branch
-                    if (secondValue->isLeaf())
+                    // If second value is another branch, traverse it first
+                    if (!secondValue->isLeaf())
                     {
-                        // Write the second value to the accumulator
-                        writeToAcc(secondValue);
+                        traverse(secondValue);
                     }
+                    // If second value is a digit or ID
                     else
                     {
-
+                        // Write value to memory location 0xFF (temporarily)
+                        writeToRegister(secondValue, "ACC");
+                        write("8D");
+                        write("FF");
+                        write("00");
                     }
+
+                    // Write first value to accumulator
+                    writeToRegister(firstValue, "ACC");
+                    
+                    // Perform add with temporary location 0xFF
+                    write("6D");
+                    write("FF");
+                    write("00");
+
+                    // Move value to temporary location 0xFF
+                    write("8D");
+                    write("FF");
+                    write("00");
                 }
             }
         }
@@ -305,20 +319,43 @@ class CodeGen
             runEnv[index] = hex;
         }
 
-        // Writes a value to the accumulator
-        void writeToAcc(Node* node)
+        // Writes a value to a register
+        void writeToRegister(Node* node, const string reg)
         {
-            // Get variable type of assigned variable
+            string constantCode = "00";
+            string varCode = "00";
+
+            // Find correct op codes depending on what register was specified
+            // Accumulator
+            if (reg == "ACC")
+            {
+                constantCode = "A9";
+                varCode = "AD";
+            }
+            // X register
+            else if (reg == "X")
+            {
+                constantCode = "A2";
+                varCode = "AE";
+            }
+            // Y register
+            else if (reg == "Y")
+            {
+                constantCode = "A0";
+                varCode = "AC";
+            }
+
+            // Get variable/literal type
             string type = getType(node);
 
-            // If the location variable uses static allocation
+            // If it is statically allocated
             if (type != "string")
             {
                 // Check if its an ID
                 if (node->getToken()->getType() == "ID")
                 {
-                    // Load the accumulator with the variable
-                    write("AD");
+                    // Load the register with the variable
+                    write(varCode);
                     write(findVarIndex(node->getName()));
                     write("00");
                 }
@@ -328,19 +365,34 @@ class CodeGen
                     // Name of literal
                     string literalName = node->getName();
 
-                    // Load accumulator with constant
-                    write("A9");
+                    // Load register with constant
+                    write(constantCode);
 
                     // Adds the literal to the runtime environment
                     addStaticLiteral(literalName);
                 }
             }
-            // Create string and store pointer
             else
             {
-                createString(node->getName());
-                write("A9");
-                write(toHex(heapVal + 1));
+                // If it is a variable
+                if (node->getToken()->getType() == "ID")
+                {
+                    // Load string pointer
+                    string temp = findVarIndex(node->getName());
+
+                    write(varCode);
+                    write(temp);
+                    write("00");
+                }
+                // If it is a string literal
+                else
+                {
+                    // Create it in heap, load pointer directly
+                    string name = node->getName();
+                    createString(name);
+                    write(constantCode);
+                    write(toHex(heapVal + 1));
+                }
             }
         }
 
