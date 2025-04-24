@@ -157,6 +157,9 @@ class CodeGen
                     Node* locationValue = node->getChild(0);
                     Node* readValue = node->getChild(1);
 
+                    // Keeps track of if there were further traversals for this branch
+                    bool furtherTraversals = false;
+
                     // Get the temporary location for the variable (T0, T1, etc)
                     string locationTemp = findVarIndex(locationValue->getName());
 
@@ -169,6 +172,7 @@ class CodeGen
                     // Do further traversing through the tree if there are further branches (ADD/isEq/isNotEq)
                     else
                     {
+                        furtherTraversals = true;
                         traverse(readValue);
                     }
 
@@ -178,11 +182,15 @@ class CodeGen
                     write("00");
 
                     // Reset temporary value used in further traversals
-                    write("A9");
-                    write("00");
-                    write("8D");
-                    write("FF");
-                    write("00");
+                    if (furtherTraversals)
+                    {
+                        furtherTraversals = false;
+                        write("A9");
+                        write("00");
+                        write("8D");
+                        write("FF");
+                        write("00");
+                    }
                 }
                 // Print Statement
                 else if (name == "Print")
@@ -190,6 +198,9 @@ class CodeGen
                     // Get information about print
                     Node* printValue = node->getChild(0);
                     string type = getType(printValue);
+
+                    // Keeps track of if there were further traversals for this branch
+                    bool furtherTraversals = false;
 
                     // Print Statement is normal if child is just a leaf node
                     if (printValue->isLeaf())
@@ -200,6 +211,8 @@ class CodeGen
                     // If there are more branches, like addition or boolean expressions
                     else 
                     {
+                        furtherTraversals = true;
+
                         // Traverse those
                         traverse(printValue);
 
@@ -227,11 +240,15 @@ class CodeGen
                     write("FF");
 
                     // Reset temporary value used in further traversals
-                    write("A9");
-                    write("00");
-                    write("8D");
-                    write("FF");
-                    write("00");
+                    if (furtherTraversals)
+                    {
+                        furtherTraversals = false;
+                        write("A9");
+                        write("00");
+                        write("8D");
+                        write("FF");
+                        write("00");
+                    }
                 }
                 // ADD branch
                 else if (name == "ADD")
@@ -348,50 +365,34 @@ class CodeGen
             // Get variable/literal type
             string type = getType(node);
 
-            // If it is statically allocated
-            if (type != "string")
+            // Check if its an ID
+            if (node->getToken()->getType() == "ID")
             {
-                // Check if its an ID
-                if (node->getToken()->getType() == "ID")
-                {
-                    // Load the register with the variable
-                    write(varCode);
-                    write(findVarIndex(node->getName()));
-                    write("00");
-                }
-                // If it wasn't an ID, it's a literal
-                else
-                {
-                    // Name of literal
-                    string literalName = node->getName();
-
-                    // Load register with constant
-                    write(constantCode);
-
-                    // Adds the literal to the runtime environment
-                    addStaticLiteral(literalName);
-                }
+                // Load the register with the variable (or pointer)
+                write(varCode);
+                write(findVarIndex(node->getName()));
+                write("00");
             }
+            // If it wasn't an ID, it's a literal
             else
             {
-                // If it is a variable
-                if (node->getToken()->getType() == "ID")
-                {
-                    // Load string pointer
-                    string temp = findVarIndex(node->getName());
+                // Name of literal
+                string literalName = node->getName();
 
-                    write(varCode);
-                    write(temp);
-                    write("00");
+                // Load register with constant
+                write(constantCode);
+
+                // If it is a string literal, create the string in heap
+                if (type == "string")
+                {
+                    createString(node->getName());
+                    write(toHex(heapVal + 1));
                 }
-                // If it is a string literal
+                // If it is statically allocated
                 else
                 {
-                    // Create it in heap, load pointer directly
-                    string name = node->getName();
-                    createString(name);
-                    write(constantCode);
-                    write(toHex(heapVal + 1));
+                    // Adds the literal to the runtime environment
+                    addStaticLiteral(literalName);
                 }
             }
         }
