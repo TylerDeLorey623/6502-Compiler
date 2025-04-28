@@ -242,9 +242,22 @@ class CodeGen
                     }
                     traverse(printValue);
 
-                    // Write value into the Y register
+                    // Write traversed value into Y register using temporary address 0xFC
+                    string tempFC = runEnv[0xFC];
+                    write("8D");
+                    write("FC");
+                    write("00");
+
+                    // Write to Y register
                     write("AC");
-                    write("FF");
+                    write("FC");
+                    write("00");
+
+                    // Restore original value at 0xFC
+                    write("A9");
+                    write(tempFC);
+                    write("8D");
+                    write("FC");
                     write("00");
                 }
 
