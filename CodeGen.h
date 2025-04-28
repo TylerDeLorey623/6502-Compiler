@@ -24,7 +24,7 @@ class CodeGen
         void generate()
         {
             // Traverse tree to generate code
-            traverse(myAST->getRoot());
+            traverse(myAST->getRoot(), 0);
 
             // Create break at the end of the code
             write("00");
@@ -90,7 +90,7 @@ class CodeGen
         int heapVal = 0xff;
 
         // Traverses AST and generates hexadecimal code in runtime environment
-        void traverse(Node* node)
+        void traverse(Node* node, int depth)
         {
             // Get name of current Node (branch/leaf)
             string name = node->getName();
@@ -115,7 +115,7 @@ class CodeGen
                 // Traverse through the current AST branch's children
                 for(Node* curNode : node->getChildren())
                 {
-                    traverse(curNode);
+                    traverse(curNode, depth + 1);
                 }
 
                 // Note that current Symbol Table was traversed
@@ -181,7 +181,7 @@ class CodeGen
                         originalFE = runEnv[0xFE];
                         furtherBOOL = true;
                     }
-                    traverse(readValue);
+                    traverse(readValue, depth + 1);
                 }
 
                 // Write calculated value (ID or literal) from accumulator into memory at locationTemp
@@ -240,24 +240,24 @@ class CodeGen
                         originalFE = runEnv[0xFE];
                         furtherBOOL = true;
                     }
-                    traverse(printValue);
+                    traverse(printValue, depth + 1);
 
-                    // Write traversed value into Y register using temporary address 0xFC
-                    string tempFC = runEnv[0xFC];
+                    // Write traversed value into Y register using temporary address 0xFD
+                    string tempFD = runEnv[0xFD];
                     write("8D");
-                    write("FC");
+                    write("FD");
                     write("00");
 
                     // Write to Y register
                     write("AC");
-                    write("FC");
+                    write("FD");
                     write("00");
 
-                    // Restore original value at 0xFC
+                    // Restore original value at 0xFD
                     write("A9");
-                    write(tempFC);
+                    write(tempFD);
                     write("8D");
-                    write("FC");
+                    write("FD");
                     write("00");
                 }
 
@@ -274,9 +274,6 @@ class CodeGen
                 {
                     write("02");
                 }
-
-                // System call
-                write("FF");
 
                 // Reset temporary value used in further traversals
                 if (furtherADD)
@@ -297,6 +294,9 @@ class CodeGen
                     write("FE");
                     write("00");
                 }
+
+                // System call
+                write("FF");
             }
             // ADD branch
             else if (name == "ADD")
@@ -310,7 +310,7 @@ class CodeGen
                 // If second value is another branch, traverse it first
                 if (!secondValue->isLeaf())
                 {
-                    traverse(secondValue);
+                    traverse(secondValue, depth + 1);
                 }
                 // If second value is a digit or ID
                 else
@@ -344,6 +344,14 @@ class CodeGen
 
                 bool furtherADD = false;
 
+                // Find temporary spots in memory
+                string firstTempLoc = toHex(0xFC - depth - 0x01);
+                string secondTempLoc = toHex(0xFC - depth - 0x02);
+
+                // Get old values at these locations
+                string temp1 = runEnv[0xFC - depth - 0x01];
+                string temp2 = runEnv[0xFC - depth - 0x02];
+
                 // If first value is another branch, traverse it first
                 if (!firstValue->isLeaf())
                 {
@@ -351,7 +359,7 @@ class CodeGen
                     {
                         furtherADD = true;
                     }
-                    traverse(firstValue);
+                    traverse(firstValue, depth + 1);
                 }
                 // If first value is an actual value, write to accumulator
                 else
@@ -359,9 +367,9 @@ class CodeGen
                     writeToRegister(firstValue, "ACC");
                 }
 
-                // Write result of first value to temporary location 0xFE
+                // Write result of first value to temporary location 1
                 write("8D");
-                write("FE");
+                write(firstTempLoc);
                 write("00");
 
                 // If second value is another branch, traverse it first
@@ -371,36 +379,21 @@ class CodeGen
                     {
                         furtherADD = true;
                     }
-                    traverse(secondValue);
-
-                    // Write traversed value into X register using temporary address 0xFD
-                    string tempFD = runEnv[0xFD];
-                    write("8D");
-                    write("FD");
-                    write("00");
-
-                    // Write to X register
-                    write("AE");
-                    write("FD");
-                    write("00");
-
-                    // Restore original value at 0xFE
-                    write("A9");
-                    write(tempFD);
-                    write("8D");
-                    write("FD");
-                    write("00");
-
+                    traverse(secondValue, depth + 1);
                 }
                 // If second value is an actual value
                 else
                 {
-                    // Write value into X register
-                    writeToRegister(secondValue, "X");
+                    // Write value into accumulator
+                    writeToRegister(secondValue, "ACC");
                 }
-                
-                // Write a 0 into the accumulator
-                write("A9");
+
+                // Write value into X register
+                write("8D");
+                write(secondTempLoc);
+                write("00");
+                write("AE");
+                write(secondTempLoc);
                 write("00");
 
                 // Reset temporary value used in further traversals
@@ -412,9 +405,26 @@ class CodeGen
                     write("00");
                 }
 
-                // Compare value in 0xFE to X register
+                // Compare value in first temporary location to X register
                 write("EC");
-                write("FE");
+                write(firstTempLoc);
+                write("00");
+
+                // Restore original values in temp1 and temp2
+                write("A9");
+                write(temp1);
+                write("8D");
+                write(firstTempLoc);
+                write("00");
+
+                write("A9");
+                write(temp2);
+                write("8D");
+                write(secondTempLoc);
+                write("00");
+
+                // Write a 0 into the accumulator
+                write("A9");
                 write("00");
 
                 // Branch 2 bytes if unequal
