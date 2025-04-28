@@ -96,195 +96,321 @@ class CodeGen
             string name = node->getName();
             string scopeName = currentHash->getName();
 
-            // If the node is a branch
-            if (!node->isLeaf())
+            // Recursively call this function for all children of a Block
+            if (name == "Block")
             {
-                // Recursively call this function for all children of a Block
-                if (name == "Block")
+                // Increase scope to the first non-traversed scope in its children 
+                if (node->getParent())
                 {
-                    // Increase scope to the first non-traversed scope in its children 
-                    if (node->getParent())
+                    vector<HashNode*> hashChildren = currentHash->getChildren();
+                    int index = 0;
+                    do
                     {
-                        vector<HashNode*> hashChildren = currentHash->getChildren();
-                        int index = 0;
-                        do
-                        {
-                            currentHash = hashChildren[index];
-                            index++;
-                        } 
-                        while (currentHash->checkTraversed());
-                    }
-
-                    // Traverse through the current AST branch's children
-                    for(Node* curNode : node->getChildren())
-                    {
-                        traverse(curNode);
-                    }
-
-                    // Note that current Symbol Table was traversed
-                    currentHash->setTraversed();
-
-                    // Move up the Symbol Table Tree
-                    currentHash = currentHash->getParent();
+                        currentHash = hashChildren[index];
+                        index++;
+                    } 
+                    while (currentHash->checkTraversed());
                 }
-                // Variable declaration
-                else if (name == "Declare")
+
+                // Traverse through the current AST branch's children
+                for(Node* curNode : node->getChildren())
                 {
-                    // Add value in static data vector
-                    string newType = node->getChild(0)->getName();
-                    string newVar = node->getChild(1)->getName();
-                    string newScope = currentHash->getName();
-                    staticData.emplace_back(newVar, newScope);
-                    lastStaticIndex = staticData.size() - 1;
-
-                    // If the data type is either an int or a boolean, add code that initializes it to 0 (which is false)
-                    if (newType != "string")
-                    {
-                        // Load the accumulator with 0
-                        write("A9");
-                        write("00");
-
-                        // Store the accumulator in temporary memory location (little endian, will always begin with 00 since highest memory location is 0x00ff, which is 0xff)
-                        write("8D");
-                        write("T" + to_string(lastStaticIndex));
-                        write("00");
-                    }
+                    traverse(curNode);
                 }
-                // Assignment Statement
-                else if (name == "Assign")
+
+                // Note that current Symbol Table was traversed
+                currentHash->setTraversed();
+
+                // Move up the Symbol Table Tree
+                currentHash = currentHash->getParent();
+            }
+            // Variable declaration
+            else if (name == "Declare")
+            {
+                // Add value in static data vector
+                string newType = node->getChild(0)->getName();
+                string newVar = node->getChild(1)->getName();
+                string newScope = currentHash->getName();
+                staticData.emplace_back(newVar, newScope);
+                lastStaticIndex = staticData.size() - 1;
+
+                // If the data type is either an int or a boolean, add code that initializes it to 0 (which is false)
+                if (newType != "string")
                 {
-                    // Get information about assignment
-                    Node* locationValue = node->getChild(0);
-                    Node* readValue = node->getChild(1);
-
-                    // Keeps track of if there were further traversals for this branch
-                    bool furtherTraversals = false;
-
-                    // Get the temporary location for the variable (T0, T1, etc)
-                    string locationTemp = findVarIndex(locationValue->getName());
-
-                    // Assigning statement is normal if second child is a leaf node
-                    if (readValue->isLeaf())
-                    {
-                        // Write the value to accumulator
-                        writeToRegister(readValue, "ACC");
-                    }
-                    // Do further traversing through the tree if there are further branches (ADD/isEq/isNotEq)
-                    else
-                    {
-                        furtherTraversals = true;
-                        traverse(readValue);
-                    }
-
-                    // Write calculated value (ID or literal) from accumulator into memory at locationTemp
-                    write("8D");
-                    write(locationTemp);
+                    // Load the accumulator with 0
+                    write("A9");
                     write("00");
 
-                    // Reset temporary value used in further traversals
-                    if (furtherTraversals)
-                    {
-                        furtherTraversals = false;
-                        write("A9");
-                        write("00");
-                        write("8D");
-                        write("FF");
-                        write("00");
-                    }
+                    // Store the accumulator in temporary memory location (little endian, will always begin with 00 since highest memory location is 0x00ff, which is 0xff)
+                    write("8D");
+                    write("T" + to_string(lastStaticIndex));
+                    write("00");
                 }
-                // Print Statement
-                else if (name == "Print")
+            }
+            // Assignment Statement
+            else if (name == "Assign")
+            {
+                // Get information about assignment
+                Node* locationValue = node->getChild(0);
+                Node* readValue = node->getChild(1);
+
+                // Keeps track of if there were further traversals for this branch
+                bool furtherADD = false;
+                bool furtherBOOL = false;
+                string originalFE = "00";
+
+                // Get the temporary location for the variable (T0, T1, etc)
+                string locationTemp = findVarIndex(locationValue->getName());
+
+                // Assigning statement is normal if second child is a leaf node
+                if (readValue->isLeaf())
                 {
-                    // Get information about print
-                    Node* printValue = node->getChild(0);
-                    string type = getType(printValue);
-
-                    // Keeps track of if there were further traversals for this branch
-                    bool furtherTraversals = false;
-
-                    // Print Statement is normal if child is just a leaf node
-                    if (printValue->isLeaf())
+                    // Write the value to accumulator
+                    writeToRegister(readValue, "ACC");
+                }
+                // Do further traversing through the tree if there are further branches (ADD/isEq/isNotEq)
+                else
+                {
+                    if (readValue->getName() == "ADD")
                     {
-                        // Writes value in print statement to the Y register
-                        writeToRegister(printValue, "Y");
+                        furtherADD = true;
                     }
-                    // If there are more branches, like addition or boolean expressions
-                    else 
+                    else if (readValue->getName() == "isEq" || readValue->getName() == "isNotEq")
                     {
-                        furtherTraversals = true;
-
-                        // Traverse those
-                        traverse(printValue);
-
-                        // Write value into the Y register
-                        write("AC");
-                        write("FF");
-                        write("00");
+                        // Get original value at FE
+                        originalFE = runEnv[0xFE];
+                        furtherBOOL = true;
                     }
+                    traverse(readValue);
+                }
 
-                    // Loads either a 1 or 2 into X register depending on static allocation
-                    write("A2");
+                // Write calculated value (ID or literal) from accumulator into memory at locationTemp
+                write("8D");
+                write(locationTemp);
+                write("00");
 
-                    // Loads a 1 in the X register if it is not a string
-                    if (type != "string")
-                    {
-                        write("01");
-                    }
-                    // Loads a 2 in the X register if it is a string
-                    else
-                    {
-                        write("02");
-                    }
-
-                    // System call
+                // Reset temporary value used in further traversals
+                if (furtherADD)
+                {
+                    furtherADD = false;
+                    write("A9");
+                    write("00");
+                    write("8D");
                     write("FF");
-
-                    // Reset temporary value used in further traversals
-                    if (furtherTraversals)
-                    {
-                        furtherTraversals = false;
-                        write("A9");
-                        write("00");
-                        write("8D");
-                        write("FF");
-                        write("00");
-                    }
+                    write("00");
                 }
-                // ADD branch
-                else if (name == "ADD")
+                else if (furtherBOOL)
                 {
-                    // Get information about the addition
-                    Node* firstValue = node->getChild(0);
-                    Node* secondValue = node->getChild(1);
+                    furtherBOOL = false;
+                    write("A9");
+                    write(originalFE);
+                    write("8D");
+                    write("FE");
+                    write("00");
+                }
+            }
+            // Print Statement
+            else if (name == "Print")
+            {
+                // Get information about print
+                Node* printValue = node->getChild(0);
+                string type = getType(printValue);
 
-                    // If second value is another branch, traverse it first
-                    if (!secondValue->isLeaf())
-                    {
-                        traverse(secondValue);
-                    }
-                    // If second value is a digit or ID
-                    else
-                    {
-                        // Write value to memory location 0xFF (temporarily)
-                        writeToRegister(secondValue, "ACC");
-                        write("8D");
-                        write("FF");
-                        write("00");
-                    }
+                // Keeps track of if there were further traversals for this branch
+                bool furtherADD = false;
+                bool furtherBOOL = false;
+                string originalFE = "00";
 
-                    // Write first value to accumulator
+                // Print Statement is normal if child is just a leaf node
+                if (printValue->isLeaf())
+                {
+                    // Writes value in print statement to the Y register
+                    writeToRegister(printValue, "Y");
+                }
+                // If there are more branches, like addition or boolean expressions
+                else 
+                {
+                    if (printValue->getName() == "ADD")
+                    {
+                        furtherADD = true;
+                    }
+                    else if (printValue->getName() == "isEq" || printValue->getName() == "isNotEq")
+                    {
+                        // Get original value at FE
+                        originalFE = runEnv[0xFE];
+                        furtherBOOL = true;
+                    }
+                    traverse(printValue);
+
+                    // Write value into the Y register
+                    write("AC");
+                    write("FF");
+                    write("00");
+                }
+
+                // Loads either a 1 or 2 into X register depending on static allocation
+                write("A2");
+
+                // Loads a 1 in the X register if it is not a string
+                if (type != "string")
+                {
+                    write("01");
+                }
+                // Loads a 2 in the X register if it is a string
+                else
+                {
+                    write("02");
+                }
+
+                // System call
+                write("FF");
+
+                // Reset temporary value used in further traversals
+                if (furtherADD)
+                {
+                    furtherADD = false;
+                    write("A9");
+                    write("00");
+                    write("8D");
+                    write("FF");
+                    write("00");
+                }
+                else if (furtherBOOL)
+                {
+                    furtherBOOL = false;
+                    write("A9");
+                    write(originalFE);
+                    write("8D");
+                    write("FE");
+                    write("00");
+                }
+            }
+            // ADD branch
+            else if (name == "ADD")
+            {
+                // Get information about the addition
+                Node* firstValue = node->getChild(0);
+                Node* secondValue = node->getChild(1);
+
+                bool furtherADD = false;
+
+                // If second value is another branch, traverse it first
+                if (!secondValue->isLeaf())
+                {
+                    traverse(secondValue);
+                }
+                // If second value is a digit or ID
+                else
+                {
+                    // Write value to memory location 0xFF (temporarily)
+                    writeToRegister(secondValue, "ACC");
+                    write("8D");
+                    write("FF");
+                    write("00");
+                }
+
+                // Write first value to accumulator
+                writeToRegister(firstValue, "ACC");
+                
+                // Perform add with temporary location 0xFF
+                write("6D");
+                write("FF");
+                write("00");
+
+                // Move value to temporary location 0xFF
+                write("8D");
+                write("FF");
+                write("00");
+            }
+            // isEq branch
+            else if (name == "isEq")
+            {
+                // Get information about two values being compared
+                Node* firstValue = node->getChild(0);
+                Node* secondValue = node->getChild(1);
+
+                bool furtherADD = false;
+
+                // If first value is another branch, traverse it first
+                if (!firstValue->isLeaf())
+                {
+                    if (firstValue->getName() == "ADD")
+                    {
+                        furtherADD = true;
+                    }
+                    traverse(firstValue);
+                }
+                // If first value is an actual value, write to accumulator
+                else
+                {
                     writeToRegister(firstValue, "ACC");
-                    
-                    // Perform add with temporary location 0xFF
-                    write("6D");
-                    write("FF");
+                }
+
+                // Write result of first value to temporary location 0xFE
+                write("8D");
+                write("FE");
+                write("00");
+
+                // If second value is another branch, traverse it first
+                if (!secondValue->isLeaf())
+                {
+                    if (secondValue->getName() == "ADD")
+                    {
+                        furtherADD = true;
+                    }
+                    traverse(secondValue);
+
+                    // Write traversed value into X register using temporary address 0xFD
+                    string tempFD = runEnv[0xFD];
+                    write("8D");
+                    write("FD");
                     write("00");
 
-                    // Move value to temporary location 0xFF
+                    // Write to X register
+                    write("AE");
+                    write("FD");
+                    write("00");
+
+                    // Restore original value at 0xFE
+                    write("A9");
+                    write(tempFD);
+                    write("8D");
+                    write("FD");
+                    write("00");
+
+                }
+                // If second value is an actual value
+                else
+                {
+                    // Write value into X register
+                    writeToRegister(secondValue, "X");
+                }
+                
+                // Write a 0 into the accumulator
+                write("A9");
+                write("00");
+
+                // Reset temporary value used in further traversals
+                if (furtherADD)
+                {
+                    furtherADD = false;
                     write("8D");
                     write("FF");
                     write("00");
                 }
+
+                // Compare value in 0xFE to X register
+                write("EC");
+                write("FE");
+                write("00");
+
+                // Branch 2 bytes if unequal
+                write("D0");
+                write("02");
+
+                // If equal, set accumulator to 1
+                write("A9");
+                write("01");
             }
         }
 
