@@ -45,7 +45,14 @@ class Node
         // Returns a child at specific index for Tree generation
         Node* getChild(int index)
         {
-            return this->children[index];
+            if (index < this->children.size())
+            {
+                return this->children[index];
+            }
+            else
+            {
+                return nullptr;
+            }
         }
 
         // Returns whether or not the Node is linked to a token

@@ -348,7 +348,7 @@ class SemanticAnalyzer
                     Token* currentToken = nullptr;
 
                     // Makes sure it wasn't an empty string ""
-                    if (node->getChild(1)->isTokenLinked())
+                    if (node->getChild(1)->getChild(0))
                     {
                         collectCharNodes(node->getChild(1), currentToken, result);
                     }
