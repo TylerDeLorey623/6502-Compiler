@@ -346,7 +346,17 @@ class SemanticAnalyzer
                     // Gets the entire string from the child CharLists
                     string result = "";
                     Token* currentToken = nullptr;
-                    collectCharNodes(node->getChild(1), currentToken, result);
+
+                    // Makes sure it wasn't an empty string ""
+                    if (node->getChild(1)->isTokenLinked())
+                    {
+                        collectCharNodes(node->getChild(1), currentToken, result);
+                    }
+                    // If it is an empty string, just link token with the initial quote
+                    else 
+                    {
+                        currentToken = node->getChild(0)->getToken();
+                    }
                     
                     // Add the string as a leaf node
                     myAST->addNode("leaf", result);
@@ -464,7 +474,7 @@ class SemanticAnalyzer
                 }
             }
             // Check if its a string literal
-            else if (tokenType == "CHAR")
+            else if (tokenType == "CHAR" || tokenType == "QUOTE")
             {
                 type = "string";
             } 

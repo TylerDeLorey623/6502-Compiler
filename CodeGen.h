@@ -632,7 +632,7 @@ class CodeGen
                 type = node->getType(name);
             }
             // Check if its a string literal
-            else if (tokenType == "CHAR")
+            else if (tokenType == "CHAR" || tokenType == "QUOTE")
             {
                 type = "string";
             } 
