@@ -63,24 +63,24 @@ class CodeGen
         HashNode* currentHash;
 
         // Struct that helps with static data storage
-        struct VarNScope
+        struct ValNScope
         {
-            string var;
+            string val;
             string scope;
-            bool isVar;
+            string type;
 
             // Constructor for struct
-            VarNScope(const string v, const string s, const bool b)
+            ValNScope(const string v, const string s, const string t)
             {
-                var = v;
+                val = v;
                 scope = s;
-                isVar = b;
+                type = t;
             }
         };
 
-        // Vectors to help with backpatching
-        vector<VarNScope> staticData;
-        vector<int> jumps;
+        // Vector to help with backpatching
+        vector<ValNScope> staticData;
+        string currentTempAddress;
 
         // Keeps track of static data
         int lastStaticIndex = 0;
@@ -133,7 +133,7 @@ class CodeGen
                 string newType = node->getChild(0)->getName();
                 string newVar = node->getChild(1)->getName();
                 string newScope = currentHash->getName();
-                staticData.emplace_back(newVar, newScope, true);
+                staticData.emplace_back(newVar, newScope, "VAR");
                 lastStaticIndex = staticData.size() - 1;
 
                 // If the data type is either an int or a boolean, add code that initializes it to 0 (which is false)
@@ -145,7 +145,7 @@ class CodeGen
 
                     // Store the accumulator in temporary memory location (little endian, will always begin with 00 since highest memory location is 0x00ff, which is 0xff)
                     write("8D");
-                    write("T" + to_string(lastStaticIndex));
+                    write("T" + to_string(lastStaticIndex)); 
                     write("00");
                 }
             }
@@ -157,7 +157,6 @@ class CodeGen
                 Node* readValue = node->getChild(1);
 
                 // Keeps track of if there were further traversals for this branch
-                bool furtherADD = false;
                 bool furtherBOOL = false;
                 string originalFE = "00";
 
@@ -175,7 +174,9 @@ class CodeGen
                 {
                     if (readValue->getName() == "ADD")
                     {
-                        furtherADD = true;
+                        staticData.emplace_back("0", "0", "ADD");
+                        lastStaticIndex = staticData.size() - 1;
+                        currentTempAddress = "T" + to_string(lastStaticIndex);
                     }
                     else if (readValue->getName() == "isEq" || readValue->getName() == "isNotEq")
                     {
@@ -192,16 +193,7 @@ class CodeGen
                 write("00");
 
                 // Reset temporary value used in further traversals
-                if (furtherADD)
-                {
-                    furtherADD = false;
-                    write("A9");
-                    write("00");
-                    write("8D");
-                    write("FF");
-                    write("00");
-                }
-                else if (furtherBOOL)
+                if (furtherBOOL)
                 {
                     furtherBOOL = false;
                     write("A9");
@@ -219,7 +211,6 @@ class CodeGen
                 string type = getType(printValue);
 
                 // Keeps track of if there were further traversals for this branch
-                bool furtherADD = false;
                 bool furtherBOOL = false;
                 string originalFE = "00";
 
@@ -234,7 +225,9 @@ class CodeGen
                 {
                     if (printValue->getName() == "ADD")
                     {
-                        furtherADD = true;
+                        staticData.emplace_back("0", "0", "ADD");
+                        lastStaticIndex = staticData.size() - 1;
+                        currentTempAddress = "T" + to_string(lastStaticIndex);
                     }
                     else if (printValue->getName() == "isEq" || printValue->getName() == "isNotEq")
                     {
@@ -278,16 +271,7 @@ class CodeGen
                 }
 
                 // Reset temporary value used in further traversals
-                if (furtherADD)
-                {
-                    furtherADD = false;
-                    write("A9");
-                    write("00");
-                    write("8D");
-                    write("FF");
-                    write("00");
-                }
-                else if (furtherBOOL)
+                if (furtherBOOL)
                 {
                     furtherBOOL = false;
                     write("A9");
@@ -364,24 +348,24 @@ class CodeGen
                 // If second value is a digit or ID
                 else
                 {
-                    // Write value to memory location 0xFF (temporarily)
+                    // Write value to temp memory location
                     writeToRegister(secondValue, "ACC");
                     write("8D");
-                    write("FF");
+                    write(currentTempAddress);
                     write("00");
                 }
 
                 // Write first value to accumulator
                 writeToRegister(firstValue, "ACC");
                 
-                // Perform add with temporary location 0xFF
+                // Perform add with temporary location
                 write("6D");
-                write("FF");
+                write(currentTempAddress);
                 write("00");
 
-                // Move value to temporary location 0xFF
+                // Move value to temporary location
                 write("8D");
-                write("FF");
+                write(currentTempAddress);
                 write("00");
             }
             // isEq branch
@@ -508,7 +492,14 @@ class CodeGen
             vector<string> newValues;
             for (int i = 0, n = staticData.size(); i < n; i++)
             {
-                log("DEBUG", "Backpatch: Variable '" + staticData[i].var + "' [T" + to_string(i) + "] with [" + toHex(pc) + "]");
+                if (staticData[i].type == "VAR")
+                {
+                    log("DEBUG", "Backpatch: Variable '" + staticData[i].val + "' [T" + to_string(i) + "] with [" + toHex(pc) + "]");
+                }
+                else if (staticData[i].type == "ADD")
+                {
+                    log("DEBUG", "Backpatch: Addition at [T" + to_string(i) + "] with [" + toHex(pc) + "]");
+                }
                 newValues.emplace_back(to_string(pc));
                 pc++;
             }
@@ -648,14 +639,14 @@ class CodeGen
             int correctIndex = -1;
 
             // Find variable in staticData array
-            for (VarNScope val : staticData)
+            for (ValNScope curVal : staticData)
             {
                 // Check if variable name is correct
-                if (val.var == varName)
+                if (curVal.type == "VAR" && curVal.val == varName)
                 {
                     // Check if its in a reachable Scope
                     HashNode* node = currentHash;
-                    string valScope = val.scope; 
+                    string valScope = curVal.scope; 
 
                     while (node && node->getName() != valScope)
                     {
