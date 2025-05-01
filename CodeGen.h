@@ -67,12 +67,14 @@ class CodeGen
         {
             string var;
             string scope;
+            bool isVar;
 
             // Constructor for struct
-            VarNScope(const string v, const string s)
+            VarNScope(const string v, const string s, const bool b)
             {
                 var = v;
                 scope = s;
+                isVar = b;
             }
         };
 
@@ -131,7 +133,7 @@ class CodeGen
                 string newType = node->getChild(0)->getName();
                 string newVar = node->getChild(1)->getName();
                 string newScope = currentHash->getName();
-                staticData.emplace_back(newVar, newScope);
+                staticData.emplace_back(newVar, newScope, true);
                 lastStaticIndex = staticData.size() - 1;
 
                 // If the data type is either an int or a boolean, add code that initializes it to 0 (which is false)
@@ -298,6 +300,53 @@ class CodeGen
                 // System call
                 write("FF");
             }
+            // IF or WHILE branch
+            else if (name == "If" || name == "While")
+            {
+                // Process boolean expression (isEq or isNotEq)
+                traverse(node->getChild(0), depth + 1);
+                
+                // Compare accumulator value to 1
+                // Write accumulator to 0xFF temporarily
+                write("8D");
+                write("FF");
+                write("00");
+
+                // Load 1 to X reg
+                write("A2");
+                write("01");
+
+                // Compare values
+                write("EC");
+                write("FF");
+                write("00");
+
+                // Reset 0xFF to 0
+                write("A9");
+                write("00");
+                write("8D");
+                write("FF");
+                write("00");
+
+                // Branch n bytes over block if not equal (JP is placeholder for jump)
+                write("D0");
+                write("JP");
+
+                // Get starting position
+                int startPos = this->pc; 
+
+                // Traverse the Block branch
+                traverse(node->getChild(1), depth + 1);
+
+                // Get ending position
+                int endingPos = this->pc;
+
+                // Find how long the block was
+                int jumpAmount = endingPos - startPos;
+
+                // Update jump placeholder
+                write(toHex(jumpAmount), startPos - 1);
+            }
             // ADD branch
             else if (name == "ADD")
             {
@@ -346,11 +395,11 @@ class CodeGen
 
                 // Find temporary spots in memory
                 string firstTempLoc = toHex(0xFC - depth - 0x01);
-                string secondTempLoc = toHex(0xFC - depth - 0x02);
+                string secondTempLoc = toHex(0xFC - depth - 0x03);
 
                 // Get old values at these locations
-                string temp1 = runEnv[0xFC - depth - 0x01];
-                string temp2 = runEnv[0xFC - depth - 0x02];
+                string temp1 = runEnv[0xFC - depth - 0x01]; 
+                string temp2 = runEnv[0xFC - depth - 0x03]; 
 
                 // If first value is another branch, traverse it first
                 if (!firstValue->isLeaf())
