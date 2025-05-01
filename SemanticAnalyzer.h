@@ -552,6 +552,28 @@ class SemanticAnalyzer
             string valueName = valueNode->getName();
             Token* valueToken = valueNode->getToken();
 
+            // If the value is a variable
+            if (valueToken->getType() == "ID")
+            {
+                // Find it in symbol table
+                HashNode* correctValueNode = findInSymbolTable(curHashNode, valueName);
+
+                // DEBUG log
+                log("DEBUG", "Assignment Statement: SCOPE checking for identifier '" + valueName + "'");
+
+                if (correctValueNode)
+                {
+                    // Set it to used
+                    correctValueNode->setUsed(valueName);
+                }
+                // Throw undeclared variable error
+                else 
+                {
+                    log("ERROR", "Use of undeclared variable '" + valueName + "' at (" + to_string(valueToken->getLine()) + ":" + to_string(valueToken->getColumn()) + ")");
+                    errorCount++;
+                }
+            }
+
             // Find the target variable in the symbol table
             HashNode* correctNode = findInSymbolTable(curHashNode, targetName);
 
@@ -569,7 +591,7 @@ class SemanticAnalyzer
                 string valueType = getType(valueNode, "Assignment Statement");
 
                 // Throw type mismatch error if types don't match
-                if (targetType != valueType)
+                if (targetType != valueType && valueType != "UNKNOWN")
                 {
                     // Type mismatch error when dealing with assigning ID to an ID
                     if (valueToken->getType() == "ID")
