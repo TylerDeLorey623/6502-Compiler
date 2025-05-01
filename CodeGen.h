@@ -80,9 +80,6 @@ class CodeGen
 
         // Vector to help with backpatching
         vector<ValNScope> staticData;
-        string currentTempAddress;
-        string tempAddress1;
-        string tempAddress2;
 
         // Keeps track of static data
         int lastStaticIndex = 0;
@@ -174,18 +171,6 @@ class CodeGen
                 // Do further traversing through the tree if there are further branches (ADD/isEq/isNotEq)
                 else
                 {
-                    if (readValue->getName() == "ADD")
-                    {
-                        staticData.emplace_back("0", "0", readValue->getName());
-                        lastStaticIndex = staticData.size() - 1;
-                        currentTempAddress = "T" + to_string(lastStaticIndex);
-                    }
-                    else if (readValue->getName() == "isEq" || readValue->getName() == "isNotEq")
-                    {
-                        // Get original value at FE
-                        originalFE = runEnv[0xFE];
-                        furtherBOOL = true;
-                    }
                     traverse(readValue, depth + 1);
                 }
 
@@ -193,17 +178,6 @@ class CodeGen
                 write("8D");
                 write(locationTemp);
                 write("00");
-
-                // Reset temporary value used in further traversals
-                if (furtherBOOL)
-                {
-                    furtherBOOL = false;
-                    write("A9");
-                    write(originalFE);
-                    write("8D");
-                    write("FE");
-                    write("00");
-                }
             }
             // Print Statement
             else if (name == "Print")
@@ -211,10 +185,6 @@ class CodeGen
                 // Get information about print
                 Node* printValue = node->getChild(0);
                 string type = getType(printValue);
-
-                // Keeps track of if there were further traversals for this branch
-                bool furtherBOOL = false;
-                string originalFE = "00";
 
                 // Print Statement is normal if child is just a leaf node
                 if (printValue->isLeaf())
@@ -257,17 +227,6 @@ class CodeGen
                 else
                 {
                     write("02");
-                }
-
-                // Reset temporary value used in further traversals
-                if (furtherBOOL)
-                {
-                    furtherBOOL = false;
-                    write("A9");
-                    write(originalFE);
-                    write("8D");
-                    write("FE");
-                    write("00");
                 }
 
                 // System call
@@ -326,7 +285,7 @@ class CodeGen
                 // Add a temporary value to the end of the Stack that holds the sum 
                 staticData.emplace_back("0", "0", name);
                 lastStaticIndex = staticData.size() - 1;
-                currentTempAddress = "T" + to_string(lastStaticIndex);
+                string currentTempAddress = "T" + to_string(lastStaticIndex);
 
                 // Get information about the addition
                 Node* firstValue = node->getChild(0);
@@ -366,11 +325,11 @@ class CodeGen
                 // Adds two temporary values to the end of the Stack that holds boolean values (0 or 1)
                 staticData.emplace_back("0", "0", name);
                 lastStaticIndex = staticData.size() - 1;
-                tempAddress1 = "T" + to_string(lastStaticIndex);
+                string tempAddress1 = "T" + to_string(lastStaticIndex);
 
                 staticData.emplace_back("0", "0", name);
                 lastStaticIndex = staticData.size() - 1;
-                tempAddress2 = "T" + to_string(lastStaticIndex);
+                string tempAddress2 = "T" + to_string(lastStaticIndex);
 
                 // Get information about two values being compared
                 Node* firstValue = node->getChild(0);
