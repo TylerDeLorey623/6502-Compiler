@@ -336,7 +336,7 @@ class CodeGen
                 write("00");
             }
             // isEq branch
-            else if (name == "isEq")
+            else if (name == "isEq" || name == "isNotEq")
             {
                 // Get information about two values being compared
                 Node* firstValue = node->getChild(0);
@@ -423,17 +423,32 @@ class CodeGen
                 write(secondTempLoc);
                 write("00");
 
-                // Write a 0 into the accumulator
+                // Write a 0 into the accumulator if op was isEq
                 write("A9");
-                write("00");
+                if (name == "isEq")
+                {
+                    write("00");   
+                }
+                // Write a 1 into the accumulator if op was isNotEq
+                else 
+                {
+                    write("01");
+                }
 
                 // Branch 2 bytes if unequal
                 write("D0");
                 write("02");
 
-                // If equal, set accumulator to 1
+                // If boolean expression was equal, set accumulator to 1 if op was isEq
                 write("A9");
-                write("01");
+                if (name == "isEq")
+                {
+                    write("01");
+                }
+                else
+                {
+                    write("00");
+                }
             }
         }
 
