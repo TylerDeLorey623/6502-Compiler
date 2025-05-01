@@ -81,6 +81,8 @@ class CodeGen
         // Vector to help with backpatching
         vector<ValNScope> staticData;
         string currentTempAddress;
+        string tempAddress1;
+        string tempAddress2;
 
         // Keeps track of static data
         int lastStaticIndex = 0;
@@ -174,7 +176,7 @@ class CodeGen
                 {
                     if (readValue->getName() == "ADD")
                     {
-                        staticData.emplace_back("0", "0", "ADD");
+                        staticData.emplace_back("0", "0", readValue->getName());
                         lastStaticIndex = staticData.size() - 1;
                         currentTempAddress = "T" + to_string(lastStaticIndex);
                     }
@@ -223,36 +225,23 @@ class CodeGen
                 // If there are more branches, like addition or boolean expressions
                 else 
                 {
-                    if (printValue->getName() == "ADD")
-                    {
-                        staticData.emplace_back("0", "0", "ADD");
-                        lastStaticIndex = staticData.size() - 1;
-                        currentTempAddress = "T" + to_string(lastStaticIndex);
-                    }
-                    else if (printValue->getName() == "isEq" || printValue->getName() == "isNotEq")
-                    {
-                        // Get original value at FE
-                        originalFE = runEnv[0xFE];
-                        furtherBOOL = true;
-                    }
                     traverse(printValue, depth + 1);
 
-                    // Write traversed value into Y register using temporary address 0xFD
-                    string tempFD = runEnv[0xFD];
+                    // Write traversed value into Y register using temporary address 0xFF
                     write("8D");
-                    write("FD");
+                    write("FF");
                     write("00");
 
                     // Write to Y register
                     write("AC");
-                    write("FD");
+                    write("FF");
                     write("00");
 
-                    // Restore original value at 0xFD
+                    // Restore 0x00 at 0xFF
                     write("A9");
-                    write(tempFD);
+                    write("00");
                     write("8D");
-                    write("FD");
+                    write("FF");
                     write("00");
                 }
 
@@ -334,11 +323,14 @@ class CodeGen
             // ADD branch
             else if (name == "ADD")
             {
+                // Add a temporary value to the end of the Stack that holds the sum 
+                staticData.emplace_back("0", "0", name);
+                lastStaticIndex = staticData.size() - 1;
+                currentTempAddress = "T" + to_string(lastStaticIndex);
+
                 // Get information about the addition
                 Node* firstValue = node->getChild(0);
                 Node* secondValue = node->getChild(1);
-
-                bool furtherADD = false;
 
                 // If second value is another branch, traverse it first
                 if (!secondValue->isLeaf())
@@ -371,27 +363,22 @@ class CodeGen
             // isEq branch
             else if (name == "isEq" || name == "isNotEq")
             {
+                // Adds two temporary values to the end of the Stack that holds boolean values (0 or 1)
+                staticData.emplace_back("0", "0", name);
+                lastStaticIndex = staticData.size() - 1;
+                tempAddress1 = "T" + to_string(lastStaticIndex);
+
+                staticData.emplace_back("0", "0", name);
+                lastStaticIndex = staticData.size() - 1;
+                tempAddress2 = "T" + to_string(lastStaticIndex);
+
                 // Get information about two values being compared
                 Node* firstValue = node->getChild(0);
                 Node* secondValue = node->getChild(1);
 
-                bool furtherADD = false;
-
-                // Find temporary spots in memory
-                string firstTempLoc = toHex(0xFC - depth - 0x01);
-                string secondTempLoc = toHex(0xFC - depth - 0x03);
-
-                // Get old values at these locations
-                string temp1 = runEnv[0xFC - depth - 0x01]; 
-                string temp2 = runEnv[0xFC - depth - 0x03]; 
-
                 // If first value is another branch, traverse it first
                 if (!firstValue->isLeaf())
                 {
-                    if (firstValue->getName() == "ADD")
-                    {
-                        furtherADD = true;
-                    }
                     traverse(firstValue, depth + 1);
                 }
                 // If first value is an actual value, write to accumulator
@@ -402,16 +389,12 @@ class CodeGen
 
                 // Write result of first value to temporary location 1
                 write("8D");
-                write(firstTempLoc);
+                write(tempAddress1);
                 write("00");
 
                 // If second value is another branch, traverse it first
                 if (!secondValue->isLeaf())
                 {
-                    if (secondValue->getName() == "ADD")
-                    {
-                        furtherADD = true;
-                    }
                     traverse(secondValue, depth + 1);
                 }
                 // If second value is an actual value
@@ -423,37 +406,15 @@ class CodeGen
 
                 // Write value into X register
                 write("8D");
-                write(secondTempLoc);
+                write(tempAddress2);
                 write("00");
                 write("AE");
-                write(secondTempLoc);
+                write(tempAddress2);
                 write("00");
-
-                // Reset temporary value used in further traversals
-                if (furtherADD)
-                {
-                    furtherADD = false;
-                    write("8D");
-                    write("FF");
-                    write("00");
-                }
 
                 // Compare value in first temporary location to X register
                 write("EC");
-                write(firstTempLoc);
-                write("00");
-
-                // Restore original values in temp1 and temp2
-                write("A9");
-                write(temp1);
-                write("8D");
-                write(firstTempLoc);
-                write("00");
-
-                write("A9");
-                write(temp2);
-                write("8D");
-                write(secondTempLoc);
+                write(tempAddress1);
                 write("00");
 
                 // Write a 0 into the accumulator if op was isEq
@@ -492,13 +453,18 @@ class CodeGen
             vector<string> newValues;
             for (int i = 0, n = staticData.size(); i < n; i++)
             {
-                if (staticData[i].type == "VAR")
+                string curType = staticData[i].type;
+                if (curType == "VAR")
                 {
                     log("DEBUG", "Backpatch: Variable '" + staticData[i].val + "' [T" + to_string(i) + "] with [" + toHex(pc) + "]");
                 }
-                else if (staticData[i].type == "ADD")
+                else if (curType == "ADD")
                 {
                     log("DEBUG", "Backpatch: Addition at [T" + to_string(i) + "] with [" + toHex(pc) + "]");
+                }
+                else if (curType == "If" || curType == "While" || curType == "isEq" || curType == "isNotEq")
+                {
+                    log("DEBUG", "Backpatch: Boolean at [T" + to_string(i) + "] with [" + toHex(pc) + "]");
                 }
                 newValues.emplace_back(to_string(pc));
                 pc++;
