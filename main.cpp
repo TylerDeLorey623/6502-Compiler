@@ -5,6 +5,7 @@
 #include <regex>
 #include <unordered_map>
 #include <iomanip>
+#include <array>
 
 #include "Verbose.h"
 #include "Token.h"
