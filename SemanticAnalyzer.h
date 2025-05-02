@@ -474,7 +474,7 @@ class SemanticAnalyzer
                 }
             }
             // Check if its a string literal
-            else if (tokenType == "CHAR" || tokenType == "QUOTE")
+            else if (tokenType == "CHAR" || tokenType == "SPACE" || tokenType == "QUOTE")
             {
                 type = "string";
             } 
