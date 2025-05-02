@@ -249,6 +249,8 @@ class CodeGen
             // IF or WHILE branch
             else if (name == "If" || name == "While")
             {
+                int posBeforeComp = this->pc;
+
                 // If the child of this statement is a leaf
                 if (node->getChild(0)->isLeaf())
                 {
@@ -294,6 +296,25 @@ class CodeGen
 
                 // Traverse the Block branch
                 traverse(node->getChild(1));
+
+                // If it was a While Statement, need to loop back to the beginning
+                if (name == "While")
+                {
+                    // Do unconditional branch be comparing 1 to 0
+                    write("A2");
+                    write("01");
+
+                    write("EC");
+                    write("FF");
+                    write("00");
+
+                    // Branch
+                    write("D0");
+
+                    // Calculate branch amount
+                    int branchAmt = 255 + posBeforeComp - this->pc; 
+                    write(toHex(branchAmt));
+                }
 
                 // Get ending position
                 int endingPos = this->pc;
