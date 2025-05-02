@@ -24,7 +24,7 @@ class CodeGen
         void generate()
         {
             // Traverse tree to generate code
-            traverse(myAST->getRoot(), 0);
+            traverse(myAST->getRoot());
 
             // Create break at the end of the code
             write("00");
@@ -80,6 +80,7 @@ class CodeGen
 
         // Vector to help with backpatching
         vector<ValNScope> staticData;
+        string currentTempAddress;
 
         // Keeps track of static data
         int lastStaticIndex = 0;
@@ -90,8 +91,11 @@ class CodeGen
         // Pointer for inserting hex in heap
         int heapVal = 0xff;
 
+        // Hash map that contains current strings in the heap and its location
+        unordered_map<string, int> existingStrings;
+
         // Traverses AST and generates hexadecimal code in runtime environment
-        void traverse(Node* node, int depth)
+        void traverse(Node* node)
         {
             // Get name of current Node (branch/leaf)
             string name = node->getName();
@@ -116,7 +120,7 @@ class CodeGen
                 // Traverse through the current AST branch's children
                 for(Node* curNode : node->getChildren())
                 {
-                    traverse(curNode, depth + 1);
+                    traverse(curNode);
                 }
 
                 // Note that current Symbol Table was traversed
@@ -155,10 +159,6 @@ class CodeGen
                 Node* locationValue = node->getChild(0);
                 Node* readValue = node->getChild(1);
 
-                // Keeps track of if there were further traversals for this branch
-                bool furtherBOOL = false;
-                string originalFE = "00";
-
                 // Get the temporary location for the variable (T0, T1, etc)
                 string locationTemp = findVarIndex(locationValue->getName());
 
@@ -171,7 +171,14 @@ class CodeGen
                 // Do further traversing through the tree if there are further branches (ADD/isEq/isNotEq)
                 else
                 {
-                    traverse(readValue, depth + 1);
+                    if (readValue->getName() == "ADD")
+                    {
+                        // Add a temporary value to the end of the Stack that holds the sum 
+                        staticData.emplace_back("0", "0", name);
+                        lastStaticIndex = staticData.size() - 1;
+                        currentTempAddress = "T" + to_string(lastStaticIndex);
+                    }
+                    traverse(readValue);
                 }
 
                 // Write calculated value (ID or literal) from accumulator into memory at locationTemp
@@ -195,7 +202,14 @@ class CodeGen
                 // If there are more branches, like addition or boolean expressions
                 else 
                 {
-                    traverse(printValue, depth + 1);
+                    if (printValue->getName() == "ADD")
+                    {
+                        // Add a temporary value to the end of the Stack that holds the sum 
+                        staticData.emplace_back("0", "0", name);
+                        lastStaticIndex = staticData.size() - 1;
+                        currentTempAddress = "T" + to_string(lastStaticIndex);
+                    }
+                    traverse(printValue);
 
                     // Write traversed value into Y register using temporary address 0xFF
                     write("8D");
@@ -235,8 +249,19 @@ class CodeGen
             // IF or WHILE branch
             else if (name == "If" || name == "While")
             {
-                // Process boolean expression (isEq or isNotEq)
-                traverse(node->getChild(0), depth + 1);
+                // If the child of this statement is a leaf
+                if (node->getChild(0)->isLeaf())
+                {
+                    // Set the true/false value to the accumulator
+                    write("A9");
+                    addStaticLiteral(node->getChild(0)->getName());
+                }
+                // If it is not a child
+                else 
+                {
+                    // Process boolean expression (isEq or isNotEq)
+                    traverse(node->getChild(0));
+                }
                 
                 // Compare accumulator value to 1
                 // Write accumulator to 0xFF temporarily
@@ -268,7 +293,7 @@ class CodeGen
                 int startPos = this->pc; 
 
                 // Traverse the Block branch
-                traverse(node->getChild(1), depth + 1);
+                traverse(node->getChild(1));
 
                 // Get ending position
                 int endingPos = this->pc;
@@ -282,11 +307,6 @@ class CodeGen
             // ADD branch
             else if (name == "ADD")
             {
-                // Add a temporary value to the end of the Stack that holds the sum 
-                staticData.emplace_back("0", "0", name);
-                lastStaticIndex = staticData.size() - 1;
-                string currentTempAddress = "T" + to_string(lastStaticIndex);
-
                 // Get information about the addition
                 Node* firstValue = node->getChild(0);
                 Node* secondValue = node->getChild(1);
@@ -294,7 +314,7 @@ class CodeGen
                 // If second value is another branch, traverse it first
                 if (!secondValue->isLeaf())
                 {
-                    traverse(secondValue, depth + 1);
+                    traverse(secondValue);
                 }
                 // If second value is a digit or ID
                 else
@@ -338,7 +358,14 @@ class CodeGen
                 // If first value is another branch, traverse it first
                 if (!firstValue->isLeaf())
                 {
-                    traverse(firstValue, depth + 1);
+                    if (firstValue->getName() == "ADD")
+                    {
+                        // Add a temporary value to the end of the Stack that holds the sum 
+                        staticData.emplace_back("0", "0", name);
+                        lastStaticIndex = staticData.size() - 1;
+                        currentTempAddress = "T" + to_string(lastStaticIndex);
+                    }
+                    traverse(firstValue);
                 }
                 // If first value is an actual value, write to accumulator
                 else
@@ -354,7 +381,14 @@ class CodeGen
                 // If second value is another branch, traverse it first
                 if (!secondValue->isLeaf())
                 {
-                    traverse(secondValue, depth + 1);
+                    if (firstValue->getName() == "ADD")
+                    {
+                        // Add a temporary value to the end of the Stack that holds the sum 
+                        staticData.emplace_back("0", "0", name);
+                        lastStaticIndex = staticData.size() - 1;
+                        currentTempAddress = "T" + to_string(lastStaticIndex);
+                    }
+                    traverse(secondValue);
                 }
                 // If second value is an actual value
                 else
@@ -515,7 +549,6 @@ class CodeGen
                 if (type == "string")
                 {
                     createString(node->getName());
-                    write(toHex(heapVal + 1));
                 }
                 // If it is statically allocated
                 else
@@ -529,22 +562,38 @@ class CodeGen
         // Writes a string into the heap in the runtime environment
         void createString(const string str)
         {
-            // Update the heap pointer
-            heapVal = heapVal - str.length() - 1;
-
-            // Create temporary pointer
-            int ptr = heapVal + 1;
-
-            // For each character in the string
-            for (char c : str)
+            // If this string doesn't already exists
+            if (existingStrings.find(str) == existingStrings.end())
             {
-                // Convert to ASCII
-                int asciiVal = c;
+                // Update the heap pointer
+                heapVal = heapVal - str.length() - 1;
 
-                // Write into heap
-                write(toHex(asciiVal), ptr);
+                // Create temporary pointer
+                int ptr = heapVal + 1;
 
-                ptr++;
+                // Add to hash map of existing strings
+                existingStrings[str] = ptr;
+
+                // For each character in the string
+                for (char c : str)
+                {
+                    // Convert to ASCII
+                    int asciiVal = c;
+
+                    // Write into heap
+                    write(toHex(asciiVal), ptr);
+
+                    ptr++;
+                }
+
+                // Write string pointer into code
+                write(toHex(heapVal + 1));
+            }
+            // If the string already exists
+            else
+            {
+                // Write its position in the runtime environment
+                write(toHex(existingStrings[str]));
             }
         }
 
@@ -612,7 +661,7 @@ class CodeGen
                 type = node->getType(name);
             }
             // Check if its a string literal
-            else if (tokenType == "CHAR" || tokenType == "QUOTE")
+            else if (tokenType == "CHAR" || tokenType == "SPACE" || tokenType == "QUOTE")
             {
                 type = "string";
             } 
