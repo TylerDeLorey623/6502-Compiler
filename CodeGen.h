@@ -29,8 +29,11 @@ class CodeGen
             // Create break at the end of the code
             write("00");
 
-            // Backpatch temporary values
-            backpatch();
+            // Backpatch temporary values if there were no errors
+            if (!error)
+            {
+                backpatch();
+            }
         }
 
         // Print runtime environment
@@ -38,17 +41,27 @@ class CodeGen
         {
             log("INFO", "Code Generation for Program #" + to_string(programNumber));
 
-            // Divide output every eight lines
-            for (int i = 0x00; i < 0x100; i++)
+            // Ensures there were no errors
+            if (!error)
             {
-                if (i != 0x00 && i % 0x08 == 0x00)
+                // Divide output every eight lines
+                for (int i = 0x00; i < 0x100; i++)
                 {
-                    cout << endl;
-                }
+                    if (i != 0x00 && i % 0x08 == 0x00)
+                    {
+                        cout << endl;
+                    }
 
-                cout << runEnv[i] << " ";
+                    cout << runEnv[i] << " ";
+                }
+                cout << endl;
+                log("INFO", "Code Generation completed with no errors.");
             }
-            cout << endl;
+            else 
+            {
+                log("ERROR", "Memory Overflow: Generated code exceeds available address space (256 bytes)");
+                log("INFO", "Code Generation completed with an error.");
+            }
         }
 
     private:
@@ -91,12 +104,21 @@ class CodeGen
         // Pointer for inserting hex in heap
         int heapVal = 0xff;
 
+        // Stores if there was an error
+        bool error = false;
+
         // Hash map that contains current strings in the heap and its location
         unordered_map<string, int> existingStrings;
 
         // Traverses AST and generates hexadecimal code in runtime environment
         void traverse(Node* node)
         {
+            // If an error was ever detected, escape code generation
+            if (error)
+            {
+                return;
+            }
+
             // Get name of current Node (branch/leaf)
             string name = node->getName();
             string scopeName = currentHash->getName();
@@ -507,17 +529,26 @@ class CodeGen
         // Write into the runtime environment at location of pc pointer (or specified index)
         void write(const string hex, int index = -1)
         {
-            // If not writing into specified index, write it at program counter
-            if (index == -1)
+            // Check if there wasn't any overflow error
+            if (index >= -1 && index < 0xff && pc < heapVal)
             {
-                index = pc;
+                // If not writing into specified index, write it at program counter
+                if (index == -1)
+                {
+                    index = pc;
 
-                // Increment program counter
-                pc++;
+                    // Increment program counter
+                    pc++;
+                }
+                
+                // Insert hex (or temp value) to runtime environment code
+                runEnv[index] = hex;
             }
-            
-            // Insert hex (or temp value) to runtime environment code
-            runEnv[index] = hex;
+            // If there was overflow
+            else
+            {
+                error = true;
+            }
         }
 
         // Writes a value to a register
