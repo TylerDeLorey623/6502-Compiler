@@ -390,7 +390,7 @@ class CodeGen
             // isEq branch
             else if (name == "isEq" || name == "isNotEq")
             {
-                // Adds two temporary values to the end of the Stack that holds boolean values (0 or 1)
+                // Adds temporary value to the end of the Stack that holds boolean values (0 or 1)
                 staticData.emplace_back("0", "0", name);
                 lastStaticIndex = staticData.size() - 1;
                 string tempAddress = "T" + to_string(lastStaticIndex);
@@ -422,11 +422,6 @@ class CodeGen
                 write(tempAddress);
                 write("00");
 
-                // Write value into X register
-                write("AE");
-                write(tempAddress);
-                write("00");
-
                 // If second value is another branch, traverse it first
                 if (!secondValue->isLeaf())
                 {
@@ -446,7 +441,12 @@ class CodeGen
                     writeToRegister(secondValue, "ACC");
                 }
 
-                // Write value into temporary address
+                // Write the first value into X register
+                write("AE");
+                write(tempAddress);
+                write("00");
+
+                // Write second value into temporary address
                 write("8D");
                 write(tempAddress);
                 write("00");
