@@ -350,6 +350,7 @@ class CodeGen
             // ADD branch
             else if (name == "ADD")
             {
+                cout << "Current Address: " << currentTempAddress << endl;
                 // Get information about the addition
                 Node* firstValue = node->getChild(0);
                 Node* secondValue = node->getChild(1);
@@ -424,7 +425,7 @@ class CodeGen
                 // If second value is another branch, traverse it first
                 if (!secondValue->isLeaf())
                 {
-                    if (firstValue->getName() == "ADD")
+                    if (secondValue->getName() == "ADD")
                     {
                         // Add a temporary value to the end of the Stack that holds the sum 
                         staticData.emplace_back("0", "0", name);
