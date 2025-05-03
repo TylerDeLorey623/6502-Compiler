@@ -23,6 +23,11 @@ class CodeGen
         // Starts generating code
         void generate()
         {
+            // Begin each program with loading accumulator with 0
+            // This fixes an issue where while loop at beginning will break in OS if pc jumps to 0x00
+            write("A9");
+            write("00");
+
             // Traverse tree to generate code
             traverse(myAST->getRoot());
 
@@ -160,19 +165,6 @@ class CodeGen
                 string newScope = currentHash->getName();
                 staticData.emplace_back(newVar, newScope, "VAR");
                 lastStaticIndex = staticData.size() - 1;
-
-                // If the data type is either an int or a boolean, add code that initializes it to 0 (which is false)
-                if (newType != "string")
-                {
-                    // Load the accumulator with 0
-                    write("A9");
-                    write("00");
-
-                    // Store the accumulator in temporary memory location (little endian, will always begin with 00 since highest memory location is 0x00ff, which is 0xff)
-                    write("8D");
-                    write("T" + to_string(lastStaticIndex)); 
-                    write("00");
-                }
             }
             // Assignment Statement
             else if (name == "Assign")
@@ -350,7 +342,6 @@ class CodeGen
             // ADD branch
             else if (name == "ADD")
             {
-                cout << "Current Address: " << currentTempAddress << endl;
                 // Get information about the addition
                 Node* firstValue = node->getChild(0);
                 Node* secondValue = node->getChild(1);
