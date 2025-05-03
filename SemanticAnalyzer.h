@@ -777,6 +777,12 @@ class SemanticAnalyzer
                             warningCount++;
                         }
                     }
+                    // If it was not found, throw 'use of undeclared variable' error
+                    else
+                    {
+                        log("ERROR", "Use of undeclared variable '" + firstName + "' at (" + to_string(firstToken->getLine()) + ":" + to_string(firstToken->getColumn()) + ")");
+                        errorCount++;
+                    }
                 }
                 // If not an identifier, it's a literal
                 else
@@ -824,6 +830,12 @@ class SemanticAnalyzer
                             warningCount++;
                         }
                     }
+                    // If it was not found, throw 'use of undeclared variable' error
+                    else
+                    {
+                        log("ERROR", "Use of undeclared variable '" + secondName + "' at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + ")");
+                        errorCount++;
+                    }
                 }
                 // If not an identifier, it's a literal
                 else
@@ -850,12 +862,6 @@ class SemanticAnalyzer
                     log("ERROR", "Type mismatch: Comparing " + firstType + " to " + secondType + " in boolean expression at (" + to_string(firstToken->getLine()) + ":" + to_string(firstToken->getColumn()) + ")");
                     errorCount++;
                 }
-            }
-            // If it was not found, throw 'use of undeclared variable' error
-            else
-            {
-                log("ERROR", "Use of undeclared variable '" + secondName + "' at (" + to_string(secondToken->getLine()) + ":" + to_string(secondToken->getColumn()) + ")");
-                errorCount++;
             }
         }
 
