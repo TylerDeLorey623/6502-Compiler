@@ -165,6 +165,19 @@ class CodeGen
                 string newScope = currentHash->getName();
                 staticData.emplace_back(newVar, newScope, "VAR");
                 lastStaticIndex = staticData.size() - 1;
+
+                // If the data type is either an int or a boolean, add code that initializes it to 0 (which is false)
+                if (newType != "string")
+                {
+                    // Load the accumulator with 0
+                    write("A9");
+                    write("00");
+
+                    // Store the accumulator in temporary memory location (little endian, will always begin with 00 since highest memory location is 0x00ff, which is 0xff)
+                    write("8D");
+                    write("T" + to_string(lastStaticIndex)); 
+                    write("00");
+                }
             }
             // Assignment Statement
             else if (name == "Assign")
@@ -380,11 +393,7 @@ class CodeGen
                 // Adds two temporary values to the end of the Stack that holds boolean values (0 or 1)
                 staticData.emplace_back("0", "0", name);
                 lastStaticIndex = staticData.size() - 1;
-                string tempAddress1 = "T" + to_string(lastStaticIndex);
-
-                staticData.emplace_back("0", "0", name);
-                lastStaticIndex = staticData.size() - 1;
-                string tempAddress2 = "T" + to_string(lastStaticIndex);
+                string tempAddress = "T" + to_string(lastStaticIndex);
 
                 // Get information about two values being compared
                 Node* firstValue = node->getChild(0);
@@ -408,9 +417,14 @@ class CodeGen
                     writeToRegister(firstValue, "ACC");
                 }
 
-                // Write result of first value to temporary location 1
+                // Write result of first value to temporary location
                 write("8D");
-                write(tempAddress1);
+                write(tempAddress);
+                write("00");
+
+                // Write value into X register
+                write("AE");
+                write(tempAddress);
                 write("00");
 
                 // If second value is another branch, traverse it first
@@ -432,17 +446,14 @@ class CodeGen
                     writeToRegister(secondValue, "ACC");
                 }
 
-                // Write value into X register
+                // Write value into temporary address
                 write("8D");
-                write(tempAddress2);
-                write("00");
-                write("AE");
-                write(tempAddress2);
+                write(tempAddress);
                 write("00");
 
-                // Compare value in first temporary location to X register
+                // Compare value in temporary address to X register
                 write("EC");
-                write(tempAddress1);
+                write(tempAddress);
                 write("00");
 
                 // Write a 0 into the accumulator if op was isEq
