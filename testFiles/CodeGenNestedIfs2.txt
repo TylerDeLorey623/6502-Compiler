@@ -1,0 +1,14 @@
+
+/*  Boolean expression if statements and nesting if statements pt.2. output: success two*/
+{
+boolean b 
+string c
+c="test"
+if (b == false){
+    if (c == "test"){
+        if (c != "nottest"){
+            print("success two")
+        }
+    }       
+}
+}$

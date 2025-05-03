@@ -1,0 +1,15 @@
+
+/*  Basic variable assignment  */
+{
+int a
+boolean b
+string c
+
+a = 9
+b = true
+c = "hello world"
+/*output: 9 1 (true) hello world*/
+print(a)
+print(b)
+print(c)
+}$

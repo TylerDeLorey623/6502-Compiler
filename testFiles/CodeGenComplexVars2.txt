@@ -1,0 +1,9 @@
+
+/*  Variable comparisons (also in complex expressions)  pt 2*/
+{
+boolean b 
+/*output: 1 (true) 1 (true) 0 (false) */
+print((false == b))
+print((true != b))
+print((false != b))
+}$

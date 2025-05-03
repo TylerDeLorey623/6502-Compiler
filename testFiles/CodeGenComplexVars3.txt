@@ -1,0 +1,8 @@
+
+/*  Variable comparisons (also in complex expressions)  pt 3*/
+{
+boolean b 
+/*output: 0 (false) 1 (true)*/
+print((true == b))
+print(((b == false) == true))
+}$

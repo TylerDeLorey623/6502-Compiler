@@ -1,0 +1,8 @@
+
+/*   Testing complex expressions with literals pt.1 */
+{
+    /* output: 1 (true) 3 6*/
+print((2 == 2))
+print(1+2)
+print(0+1+2+3)
+}$

@@ -1,0 +1,13 @@
+
+/*  Boolean expression if statements and nesting if statements pt.1. output: success*/
+{
+int a 
+a=5
+if (a == 5) {
+    if (a == 1+4){
+        if (2+a==4+3){
+            print("success")
+        }
+    }
+}
+}$

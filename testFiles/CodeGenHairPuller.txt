@@ -1,0 +1,13 @@
+{
+int a
+a = 9
+int b
+b = 4
+if (a ==2+3+b){
+print("yes")
+}
+print(b)
+print(2+3)
+print(2+3+b)
+print(a)
+}$

@@ -1,0 +1,7 @@
+
+/*Complex expressions pt.3*/
+{
+    /*output 1 (true) 0 (false)*/
+    print ((true == true))
+    print ((false != false))
+}$

@@ -1,0 +1,11 @@
+
+/*  variable declaration with default values and output  */
+{
+int a
+boolean b
+string c
+/*output: 0 0 (false) [empty string] */ 
+print(a)
+print(b)
+print(c)
+}$

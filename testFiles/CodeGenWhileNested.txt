@@ -1,0 +1,18 @@
+
+/*  nested while loops: (should count from 1 to 81) */
+{
+int i
+int c
+c = 0
+while (i != 9) {
+    int j
+    while (j != 9){
+        c = 1+c 
+        print(c)
+        j=1+j
+    }
+    i=1+i
+}
+print("ended")
+}$
+

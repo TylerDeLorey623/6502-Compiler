@@ -1,0 +1,12 @@
+/*  basic output of all data type literals: output: 1 (true) 0 (false) 0 7 hello   world   end    */
+{
+print(true)
+print(false)
+print(0)
+print(7)
+print("hello")
+print(" ")
+print("world")
+print("")
+print("end")
+}$

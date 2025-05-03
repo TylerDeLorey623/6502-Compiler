@@ -1,0 +1,23 @@
+
+/*  Variable declaration/assignment in scope output: 4 3 2 1 */
+{
+int a
+a=1
+int b 
+b=2
+{   
+    int a
+    a = 2
+    b = 4
+    {
+        int a 
+        a = 3
+        print(b)
+        print(a)
+    }
+    print(a)
+}
+print(a)
+
+}$
+

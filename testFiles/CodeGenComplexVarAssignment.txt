@@ -1,0 +1,12 @@
+
+/*  Complex variable assignment with literals  */
+{
+int a
+boolean b
+
+a = 2+3+4
+b = (2 == 2)
+/*output: 9 1 (true)*/
+print(a)
+print(b)
+}$

@@ -1,0 +1,8 @@
+
+/*Complex expressions pt.4*./
+/* 1 (true) 1 (true)*/
+{
+    print(("true" == "true"))
+    print(("true" != "false"))
+}$
+

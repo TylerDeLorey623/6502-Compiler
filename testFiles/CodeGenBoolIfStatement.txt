@@ -1,0 +1,10 @@
+
+/*  Boolean If Statements output: if statement worked*/
+{
+if true {
+    print("if statement worked")
+}
+if false{
+    print("if statement failed")
+}
+}$

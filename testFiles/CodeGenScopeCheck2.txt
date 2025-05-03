@@ -1,0 +1,21 @@
+{
+    int a
+    a = 0
+    string q
+    {
+       a = 2
+       int a
+       {
+          string c
+          {
+             a = 4
+             c = "hello"
+          }
+          print(c)
+       }
+       print(a)
+       q = "world"
+    }
+    print(a)
+    print(q)
+ }$

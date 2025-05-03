@@ -1,0 +1,11 @@
+
+/*  While false and boolean expresion output: ended*/
+{
+int x
+while (true == false) {
+    x = 1+x
+    print(x)
+}
+print("ended")
+}$
+

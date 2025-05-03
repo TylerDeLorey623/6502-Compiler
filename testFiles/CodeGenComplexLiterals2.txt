@@ -1,0 +1,8 @@
+
+/*CG complex expressions pt. 2*/
+{
+    /* output: 0 (false) 1 (true) 0 (false)*/
+    print((2 == 1))
+    print((3 != 2))
+    print ((0 != 0))
+}$

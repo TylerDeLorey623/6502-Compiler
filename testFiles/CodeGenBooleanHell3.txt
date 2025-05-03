@@ -1,0 +1,17 @@
+/* Boolean Expr Printing: This test case
+- demonstrates the compiler's ability to
+- generate code for computing the result
+- of a BooeleanExpr and printing the result
+- Result: falsefalsetruetruetruetrue
+- Result: 0011110
+- Credit: Tien */
+{
+boolean a
+print((a == true))
+print((true == a))
+print((a == false))
+print((false == a))
+print((a != true))
+print((true != a))
+print(a)
+}$
