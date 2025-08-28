@@ -1,8 +1,9 @@
 # The Compiler
 This compiler is written in **C++**. 
 
-## Branch for Grading
-For grading purposes, the main branch will constantly keep being updated for the current project, so to get the copy of a completed project with no additions from future projects, check the **branch for that specific project** for grading. Do NOT grade the main branch please. :) 
+## 6502 Compiler
+This compiler uses the subset of the 6502 instruction set, created by Brian Gormanly and Alan Labouseur at Marist University.
+The instruction can be found [here](https://www.labouseur.com/commondocs/6502alan-instruction-set.pdf).
 
 ## Running the Compiler
 ### In order to run the C++ code, you need a couple things set up
